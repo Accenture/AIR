@@ -54,7 +54,7 @@ class Params(object):
     CONFIG_FILE = None
 
     # output options
-    OUTPUT_TYPE = "json"
+    OUTPUT_TYPE = "video"
     LABEL_MAPPING = "pascal"
     VIDEO_FILE = None
     OUT_RESOLUTION = None
@@ -66,7 +66,6 @@ class Params(object):
     # algorithm parameters
     MODEL = "dauntless-sweep-2_resnet152_pascal-nms-inference.h5"
     BACKBONE = "resnet152"
-    BATCH_SIZE = 1
     CONFIDENCE_THRES = 0.25
     DETECT_EVERY_NTH_FRAME = 60
     MAX_DETECTIONS_PER_FRAME = 20
@@ -74,6 +73,9 @@ class Params(object):
     SHOW_DETECTION_N_FRAMES = 20
     USE_GPU = False
     PROFILE = False
+    IMAGE_TILING_DIM = 0
+    IMAGE_MIN_SIDE = 1525
+    IMAGE_MAX_SIDE = 2025
 
 
 def resolve_output_type(output):
@@ -98,6 +100,13 @@ def parse_args(parser=None):
                         help=f'Select label mapping from object id to name (default: "{Params.LABEL_MAPPING}")')
     parser.add_argument('-r', '--resolution', type=int,
                         nargs=2, help="Output video resolution")
+    parser.add_argument('--image-tiling-dim', 
+                        help='Split input image into <this param>^2 overlapping tiles before feeding it into the network.', 
+                        type=int, default=Params.IMAGE_TILING_DIM)
+    parser.add_argument('--image-min-side', help='Rescale the image so the smallest side is min_side.', 
+                        type=int, default=Params.IMAGE_MIN_SIDE)
+    parser.add_argument('--image-max-side', help='Rescale the image if the largest side is larger than max_side.', 
+                        type=int, default=Params.IMAGE_MAX_SIDE)
     parser.add_argument('-n', '--num-frames', type=int,
                         default=Params.PROCESS_NUM_FRAMES, help="How many frames to process?")
     parser.add_argument('-fo', '--frame-offset', type=int,
@@ -118,9 +127,6 @@ def parse_args(parser=None):
                              "box tracking looks smooth, has no effect if -d flag is set to 1. If interpolation is not "
                              "enabled bounding boxes flash on top of video at (maximum) frequency specified by -d flag, "
                              "useful to disable when testing retinanet detection performance")
-    parser.add_argument('-b', '--batch-size', type=int, default=Params.BATCH_SIZE,
-                        help="ADVANCED: Batch size used when doing inference, trades memory usage for speed (especially on GPU), "
-                             "should be a power of two and at maximum 128")
     parser.add_argument('-bb', '--backbone', default=Params.BACKBONE,
                         help="ADVANCED: Select backbone network for the inference model, "
                              "check the available options here: https://github.com/fizyr/keras-retinanet/tree/master/keras_retinanet/models")
@@ -150,10 +156,12 @@ def parse_args(parser=None):
         Params.OUTPUT_PATH = args.output
         Params.OUTPUT_TYPE = resolve_output_type(args.output)
         Params.COMPRESS_VIDEO = args.no_compress
+        Params.IMAGE_TILING_DIM = args.image_tiling_dim
+        Params.IMAGE_MIN_SIDE = args.image_min_side
+        Params.IMAGE_MAX_SIDE = args.image_max_side
 
         Params.MODEL = args.model
         Params.BACKBONE = args.backbone
-        Params.BATCH_SIZE = args.batch_size
         Params.CONFIDENCE_THRES = args.confidence_thres 
         Params.DETECT_EVERY_NTH_FRAME = args.detect_every_nth_frame
         Params.INTERPOLATE_BETWEEN_DETECTIONS = args.no_interpolation
@@ -172,7 +180,7 @@ if __name__ == '__main__':
 
 import keras
 from keras_retinanet.keras_retinanet import models
-from keras_retinanet.keras_retinanet.utils.image import read_image_bgr, preprocess_image, resize_image, compute_resize_scale
+from keras_retinanet.keras_retinanet.utils.image import read_image_bgr, preprocess_image_caffe_fast, resize_image, compute_resize_scale
 from keras_retinanet.keras_retinanet.utils.visualization import draw_box, draw_caption
 from keras_retinanet.keras_retinanet.utils.gpu import setup_gpu
 
@@ -276,8 +284,7 @@ def main(exporter=None):
     width, height = vid.read_video_resolution(Params.VIDEO_FILE)
     frame_shape = (height, width, 3)
     scale = compute_resize_scale(frame_shape)
-    batch_shape = (Params.BATCH_SIZE, round(scale*height), round(scale*width), 3)
-    resized_shape = batch_shape[1:]
+    resized_shape = (round(scale*height), round(scale*width), 3)
     imagenet_mean = np.array([103.939, 116.779, 123.68], dtype=np.float32)
 
     if not Params.OUTPUT_PATH:
@@ -300,21 +307,19 @@ def main(exporter=None):
     fps = int(real_fps)
     in_res = vid.read_video_resolution(Params.VIDEO_FILE)
     
-    CHUNK_SIZE = Params.DETECT_EVERY_NTH_FRAME * Params.BATCH_SIZE
+    CHUNK_SIZE = Params.DETECT_EVERY_NTH_FRAME
     disable_video = Params.OUTPUT_TYPE.lower() != valid_output_types[0]
     if Params.OUT_RESOLUTION is None:
         Params.OUT_RESOLUTION = in_res
     if detection_exporter is None:
         detection_exporter = DetectionExporter(out_path, real_fps, in_res, Params.OUT_RESOLUTION, 
                                                Params.DETECT_EVERY_NTH_FRAME, placeholder=Params.OUTPUT_TYPE == "video")
-    print("!!!!!", Params.OUTPUT_TYPE, fps, Params.OUT_RESOLUTION)
     with detection_exporter:
-        # codec="avc1"
         with VideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", placeholder=disable_video) as writer:
             with VideoIterator(Params.VIDEO_FILE, max_slice=CHUNK_SIZE) as vi:
                 print("* * * * *")
-                print(f"Starting people detection from frame #{Params.FRAME_OFFSET}")
-                print("Using inference model", Params.MODEL, f"({Params.BACKBONE})", "and batch size", Params.BATCH_SIZE, "for detection")
+                print(f"Starting object detection from frame #{Params.FRAME_OFFSET}")
+                print(f"Using inference model {Params.MODEL} ({Params.BACKBONE} backbone) for detection")
                 print("Output type is", Params.OUTPUT_TYPE.upper())
                 info_str = "all remaining frames..." if Params.PROCESS_NUM_FRAMES is None else f"{Params.PROCESS_NUM_FRAMES} frames in total..."
                 if Params.PROFILE:
@@ -325,219 +330,92 @@ def main(exporter=None):
                 vi.seek(Params.FRAME_OFFSET)
                 fps_timer = time.time()
                 fps_counter = 0
-                
-                if Params.BATCH_SIZE > 1:
-                    frames_processed = 0
-                    if Params.PROCESS_NUM_FRAMES is None:
-                        Params.PROCESS_NUM_FRAMES = float("inf")
-                    current_start_idx = Params.FRAME_OFFSET
-                    detect_frames = []
-                    valid_detections = deque([])
-                    detect_idx = 0
-                    preprocessed_frames_uint8 = np.empty(batch_shape, dtype=np.uint8)
-                    preprocessed_frames_float32 = np.empty(batch_shape, dtype=np.float32)
-
-                    while frames_processed < Params.PROCESS_NUM_FRAMES:
-                        if Params.OUTPUT_TYPE == "video":
-                            chunk = vi[current_start_idx:current_start_idx+CHUNK_SIZE]
-                            detect_frames = chunk[::Params.DETECT_EVERY_NTH_FRAME]
-                        else:
-                            detect_frames = []
-                            for i in range(current_start_idx, 
-                                        current_start_idx+CHUNK_SIZE, 
-                                        Params.DETECT_EVERY_NTH_FRAME):
-                                try:
-                                    detect_frames.append(vi[i])
-                                except IndexError:
-                                    break
-                            # chunk size plays a role in the loop exit condition, let's fake that
-                            chunk = [None] * (Params.DETECT_EVERY_NTH_FRAME * len(detect_frames))
-                        if detect_frames:
-                            for i in range(Params.BATCH_SIZE):
-                                try:
-                                    image = detect_frames[i]
-                                except IndexError:
-                                    preprocessed_frames_uint8[i, ...] = np.zeros(resized_shape)
-                                else:
-                                    image = cv2.resize(image, None, fx=scale, fy=scale)
-                                    preprocessed_frames_uint8[i, ...] = image
-                            
-                            # Subtract ImageNet mean (vectorized version of preprocess_image())
-                            preprocessed_frames_float32 = preprocessed_frames_uint8 - imagenet_mean
-
-                            # run inference on batch in retinanet
-                            bboxes_batch, scores_batch, labels_batch = model.predict_on_batch(preprocessed_frames_float32)
-
-                            valid_detections = deque([])
-
-                            for i in range(Params.BATCH_SIZE):
-                                bboxes, scores, labels = bboxes_batch[i], scores_batch[i], labels_batch[i]
-                                try:
-                                    valid_idx = np.argwhere(scores >= Params.CONFIDENCE_THRES).ravel()[-1] + 1
-                                except IndexError:
-                                    valid_idx = 0
-                                cut_idx = min(valid_idx, Params.MAX_DETECTIONS_PER_FRAME)
-                                valid_detections.append((list(bboxes[:cut_idx] / scale), 
-                                                        list(scores[:cut_idx]),
-                                                        [labels_to_names[l] for l in labels[:cut_idx]]))
-
-                        if Params.OUTPUT_TYPE == "video":
-                            for i, frame in enumerate(chunk):
-                                if detect_frames and i % Params.DETECT_EVERY_NTH_FRAME == 0:
-                                    bboxes, scores, labels = valid_detections.popleft()
-                                    if bboxes:
-                                        detection_disp_counter = 0
-                                        old_bboxes, old_scores, old_labels = bboxes, scores, labels
-                                    if Params.INTERPOLATE_BETWEEN_DETECTIONS:
-                                        new_detections = kt.get_detections_from_bboxes(
-                                            labels, bboxes, scores)
-                                        detections, running_id = kt.match_and_update_detections(
-                                            new_detections, detections, running_id)
-                                        frame = kt.visualize_detections(frame, detections, uncertain_color=None)
-                                    else:
-                                        frame = kt.visualize_bboxes(
-                                            frame, labels, bboxes, scores)
-
-                                    for label, score in zip(labels, scores):
-                                        print(f"[Frame {current_start_idx + i}] Detected: {label} ({score:.3f})")
-
-                                else:
-                                    if Params.INTERPOLATE_BETWEEN_DETECTIONS:
-                                        interp_detections = kt.interpolate_detections(
-                                            detections, (i % Params.DETECT_EVERY_NTH_FRAME) / Params.DETECT_EVERY_NTH_FRAME)
-                                        frame = kt.visualize_detections(
-                                            frame, interp_detections, uncertain_color=None)
-                                    elif valid_detections and detection_disp_counter < Params.SHOW_DETECTION_N_FRAMES:
-                                        frame = kt.visualize_bboxes(
-                                            frame, old_labels, old_bboxes, old_scores)
-                                        detection_disp_counter += 1
-
-                                writer.write(frame, bgr_to_rgb=False)
-                        else:
-                            while len(valid_detections) > 0:
-                                detect_idx = current_start_idx + \
-                                    (Params.BATCH_SIZE - len(valid_detections)) * Params.DETECT_EVERY_NTH_FRAME
-                                bboxes, scores, labels = valid_detections.popleft() # detections of one frame
-                                for label, score in zip(labels, scores):
-                                    print(f"[Frame {detect_idx}] Detected: {label} ({score:.3f})")
-                                if Params.INTERPOLATE_BETWEEN_DETECTIONS:
-                                    new_detections = kt.get_detections_from_bboxes(
-                                        labels, bboxes, scores)
-                                    detections, running_id = kt.match_and_update_detections(
-                                        new_detections, detections, running_id)
-                                    unseen_detections = [d for d in detections if d.object_id > seen_idx and d.is_valid]
-                                    if unseen_detections:
-                                        seen_idx = max(unseen_detections, key=lambda d: d.object_id).object_id
-                                        detection_exporter.add_detections_at_frame(unseen_detections, detect_idx)
-                                else:
-                                    new_detections = kt.get_detections_from_bboxes(
-                                            labels, bboxes, scores)
-                                    detection_exporter.add_detections_at_frame(new_detections, detect_idx)
-                                detection_exporter.update_timeseries(new_detections, detect_idx)
-
-                        frames_processed += CHUNK_SIZE
-                        current_start_idx += CHUNK_SIZE
-
-                        fps_counter += CHUNK_SIZE
-                        if fps_counter >= 100:
-                            # TODO: Edit this to make sense when output type is "json"
-                            fps = fps_counter / (time.time() - fps_timer)
-                            print(f"Processed {frames_processed} frames ({fps:.1f} fps)")
-                            fps_counter = 0
-                            fps_timer = time.time()
-
-                        if len(chunk) < CHUNK_SIZE:
-                            break
-                        
-                        # free up memory (video chunks can be huge)
-                        # chunk = None
-                        # gc.collect()
                                 
-                else:
-                    preprocessed_float32 = np.empty(resized_shape, dtype=np.float32)
-                    gen = vi if Params.OUTPUT_TYPE == "video" else itertools.repeat(None)
-                    fps_counter = 0 if Params.OUTPUT_TYPE == "video" else -Params.DETECT_EVERY_NTH_FRAME
-                    for j, frame in enumerate(gen):
+                preprocessed_float32 = np.empty(resized_shape, dtype=np.float32)
+                gen = vi if Params.OUTPUT_TYPE == "video" else itertools.repeat(None)
+                fps_counter = 0 if Params.OUTPUT_TYPE == "video" else -Params.DETECT_EVERY_NTH_FRAME
+                for j, frame in enumerate(gen):
 
-                        if Params.OUTPUT_TYPE != "video":
-                            i = Params.FRAME_OFFSET + j * Params.DETECT_EVERY_NTH_FRAME
-                            try:
-                                frame = vi[i]
-                            except IndexError:
-                                break
-                            fps_counter += Params.DETECT_EVERY_NTH_FRAME - 1
-                        else:
-                            i = j
-
-                        if Params.PROCESS_NUM_FRAMES is not None and i >= Params.PROCESS_NUM_FRAMES + Params.FRAME_OFFSET:
+                    if Params.OUTPUT_TYPE != "video":
+                        i = Params.FRAME_OFFSET + j * Params.DETECT_EVERY_NTH_FRAME
+                        try:
+                            frame = vi[i]
+                        except IndexError:
                             break
+                        fps_counter += Params.DETECT_EVERY_NTH_FRAME - 1
+                    else:
+                        i = j
 
-                        if i % Params.DETECT_EVERY_NTH_FRAME == 0 or Params.OUTPUT_TYPE != "video":
-                            
-                            image = cv2.resize(frame, None, fx=scale, fy=scale)  
-                            
-                            # Subtract ImageNet mean (vectorized version of preprocess_image())
-                            np.subtract(image, imagenet_mean, out=preprocessed_float32, casting="unsafe")
+                    if Params.PROCESS_NUM_FRAMES is not None and i >= Params.PROCESS_NUM_FRAMES + Params.FRAME_OFFSET:
+                        break
 
-                            bboxes, scores, labels = model.predict_on_batch(
-                                np.expand_dims(preprocessed_float32, axis=0))
+                    if i % Params.DETECT_EVERY_NTH_FRAME == 0 or Params.OUTPUT_TYPE != "video":
+                        
+                        image = cv2.resize(frame, None, fx=scale, fy=scale)  
+                        
+                        # Subtract ImageNet mean (vectorized version of preprocess_image())
+                        np.subtract(image, imagenet_mean, out=preprocessed_float32, casting="unsafe")
 
-                            bboxes /= scale
+                        bboxes, scores, labels = model.predict_on_batch(
+                            np.expand_dims(preprocessed_float32, axis=0))
 
-                            # extract valid detections
-                            valid_detections = [(b, s, l) for b, s, l in list(zip(bboxes[0], scores[0], labels[0]))[
-                                :Params.MAX_DETECTIONS_PER_FRAME] if s > Params.CONFIDENCE_THRES]
-                            if valid_detections:
-                                detection_disp_counter = 0
-                                bboxes, scores, labels = list(zip(*valid_detections))
-                                labels = [labels_to_names[l] for l in labels]
-                                old_bboxes, old_scores, old_labels = bboxes, scores, labels
+                        bboxes /= scale
+
+                        # extract valid detections
+                        valid_detections = [(b, s, l) for b, s, l in list(zip(bboxes[0], scores[0], labels[0]))[
+                            :Params.MAX_DETECTIONS_PER_FRAME] if s > Params.CONFIDENCE_THRES]
+                        if valid_detections:
+                            detection_disp_counter = 0
+                            bboxes, scores, labels = list(zip(*valid_detections))
+                            labels = [labels_to_names[l] for l in labels]
+                            old_bboxes, old_scores, old_labels = bboxes, scores, labels
+                        else:
+                            bboxes, scores, labels = ([], [], [])
+                        if Params.INTERPOLATE_BETWEEN_DETECTIONS:
+                            new_detections = kt.get_detections_from_bboxes(
+                                labels, bboxes, scores)
+                            detections, running_id = kt.match_and_update_detections(
+                                new_detections, detections, running_id)
+                            if Params.OUTPUT_TYPE != "video":
+                                unseen_detections = [d for d in detections if d.object_id > seen_idx and d.is_valid]
+                                if unseen_detections:
+                                    seen_idx = max(unseen_detections, key=lambda d: d.object_id).object_id
+                                    detection_exporter.add_detections_at_frame(unseen_detections, i)
                             else:
-                                bboxes, scores, labels = ([], [], [])
-                            if Params.INTERPOLATE_BETWEEN_DETECTIONS:
+                                frame = kt.visualize_detections(frame, detections, uncertain_color=None)
+                            detection_exporter.update_timeseries(detections, i)
+                        else:
+                            if Params.OUTPUT_TYPE != "video":
                                 new_detections = kt.get_detections_from_bboxes(
                                     labels, bboxes, scores)
-                                detections, running_id = kt.match_and_update_detections(
-                                    new_detections, detections, running_id)
-                                if Params.OUTPUT_TYPE != "video":
-                                    unseen_detections = [d for d in detections if d.object_id > seen_idx and d.is_valid]
-                                    if unseen_detections:
-                                        seen_idx = max(unseen_detections, key=lambda d: d.object_id).object_id
-                                        detection_exporter.add_detections_at_frame(unseen_detections, i)
-                                else:
-                                    frame = kt.visualize_detections(frame, detections, uncertain_color=None)
-                                detection_exporter.update_timeseries(detections, i)
+                                detection_exporter.add_detections_at_frame(new_detections, i) # - 2*Params.DETECT_EVERY_NTH_FRAME)
+                                detection_exporter.update_timeseries(new_detections, i)
                             else:
-                                if Params.OUTPUT_TYPE != "video":
-                                    new_detections = kt.get_detections_from_bboxes(
-                                        labels, bboxes, scores)
-                                    detection_exporter.add_detections_at_frame(new_detections, i) # - 2*Params.DETECT_EVERY_NTH_FRAME)
-                                    detection_exporter.update_timeseries(new_detections, i)
-                                else:
-                                    frame = kt.visualize_bboxes(
-                                        frame, labels, bboxes, scores)
-
-                            for label, score in zip(labels, scores):
-                                print(f"[Frame {i + Params.FRAME_OFFSET}] Detected: {label} ({score:.3f})")
-
-                        elif Params.OUTPUT_TYPE == "video":
-                            if Params.INTERPOLATE_BETWEEN_DETECTIONS:
-                                interp_detections = kt.interpolate_detections(
-                                    detections, (i % Params.DETECT_EVERY_NTH_FRAME) / Params.DETECT_EVERY_NTH_FRAME)
-                                frame = kt.visualize_detections(
-                                    frame, interp_detections, uncertain_color=None)
-                            elif valid_detections and detection_disp_counter < Params.SHOW_DETECTION_N_FRAMES:
                                 frame = kt.visualize_bboxes(
-                                    frame, old_labels, old_bboxes, old_scores)
-                                detection_disp_counter += 1
+                                    frame, labels, bboxes, scores)
 
-                        writer.write(frame, bgr_to_rgb=False)
-                        fps_counter += 1
-                        if fps_counter >= 100:
-                            fps = fps_counter / (time.time() - fps_timer)
-                            print(f"Processed {i} frames ({fps:.1f} fps)")
-                            fps_counter = 0
-                            fps_timer = time.time()
+                        for label, score in zip(labels, scores):
+                            print(f"[Frame {i + Params.FRAME_OFFSET}] Detected: {label} ({score:.3f})")
+
+                    elif Params.OUTPUT_TYPE == "video":
+                        if Params.INTERPOLATE_BETWEEN_DETECTIONS:
+                            interp_detections = kt.interpolate_detections(
+                                detections, (i % Params.DETECT_EVERY_NTH_FRAME) / Params.DETECT_EVERY_NTH_FRAME)
+                            frame = kt.visualize_detections(
+                                frame, interp_detections, uncertain_color=None)
+                        elif valid_detections and detection_disp_counter < Params.SHOW_DETECTION_N_FRAMES:
+                            frame = kt.visualize_bboxes(
+                                frame, old_labels, old_bboxes, old_scores)
+                            detection_disp_counter += 1
+
+                    writer.write(frame, bgr_to_rgb=False)
+                    fps_counter += 1
+                    if fps_counter >= 100:
+                        processing_fps = fps_counter / (time.time() - fps_timer)
+                        print(f"Processed {i} frames ({(i)/(fps+1e-6):.1f} seconds of video), processing speed: {processing_fps:.1f} fps")
+                        fps_counter = 0
+                        fps_counter = 0
+                        fps_timer = time.time()
 
     if Params.PROFILE:
         pr.disable()
