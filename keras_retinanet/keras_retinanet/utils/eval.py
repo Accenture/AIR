@@ -12,6 +12,8 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+Modifications copyright (c) 2020-2021 Accenture
 """
 
 # Modified by Pasi Pyrrö 16.7.2020
@@ -38,6 +40,7 @@ import matplotlib.pyplot as plt
 
 from compute_overlap import compute_overlap
 from .transform import clip_aabb_array
+from .image import resize_image as resize_func
 from .visualization import draw_detections, draw_annotations
 from ..preprocessing.pascal_voc import voc_classes, PascalVocGenerator
 from .. import backend
@@ -49,6 +52,7 @@ import keras
 import numpy as np
 import os
 import time
+import functools
 
 import cv2
 import progressbar
@@ -56,10 +60,13 @@ assert(callable(progressbar.progressbar)), "Using wrong progressbar module, inst
 
 import wandb
 
+
 WANDB_ENABLED = os.environ.get("WANDB_MODE") != "disabled"
 MAX_NUM_UPLOAD_IMAGES = 10
 DISABLE_IMG_UPLOADS = False
 HERIDAL_VIS_SETTINGS = True
+TILING_OVERLAP = 100
+TRAIN_OVERLAP = 50
 
 
 def _compute_ap(recall, precision):
@@ -89,6 +96,96 @@ def _compute_ap(recall, precision):
     # and sum (\Delta recall) * prec
     ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
     return ap
+    
+
+def run_inference_on_image(
+    model,
+    image,
+    resize_image=None,
+    score_threshold=0.01, 
+    max_detections=1000,
+    tiling_dim=0,
+    top_k=50,
+    nms_threshold=0.5,
+    nms_mode="argmax",
+    mob_iterations=3,
+    tiling_overlap=TILING_OVERLAP,
+    training_overlap=TRAIN_OVERLAP,
+):
+    orig_img_shape = image.shape
+
+    
+    tile_size = imtools.grid_dim_to_tile_size(image, tiling_dim, overlap=tiling_overlap)
+    image_parts, offsets = imtools.create_overlapping_tiled_mosaic(image, tile_size=tile_size,
+                                                                    overlap=tiling_overlap, no_fill=True)
+
+    if tiling_dim > 1:
+        image_min_side = min(tile_size) - tiling_overlap + training_overlap # // 2
+        image_max_side = max(tile_size) - tiling_overlap + training_overlap # // 2
+        resize_image = functools.partial(resize_func, min_side=image_min_side, max_side=image_max_side)
+    
+    all_boxes, all_scores, all_labels = [], [], []
+
+    for image, offset in zip(image_parts, offsets):
+        offset = np.tile(offset[::-1], 2)
+        if resize_image is not None:
+            image, scale = resize_image(image)
+        else:
+            scale = 1
+
+        if keras.backend.image_data_format() == 'channels_first':
+            image = image.transpose((2, 0, 1))
+
+        # run network
+        boxes, scores, labels = model.predict_on_batch(np.expand_dims(image, axis=0))[:3]
+
+        # correct boxes for image scale and translate subtiles to whole 
+        # image coordinate frame
+        boxes /= scale
+        boxes += offset
+
+        all_boxes.append(clip_aabb_array(orig_img_shape, boxes))
+        all_scores.append(scores)
+        all_labels.append(labels)
+
+    boxes = np.concatenate(all_boxes, axis=1)
+    scores = np.concatenate(all_scores, axis=1)
+    labels = np.concatenate(all_labels, axis=1)
+
+    # select indices which have a score above the threshold
+    indices = np.where(scores[0, :] > score_threshold)[0]
+
+    # select those scores
+    scores = scores[0, indices]
+
+    # find the order with which to sort the scores
+    scores_sort = np.argsort(-scores)[:max_detections]
+
+    # select detections
+    image_boxes      = boxes[0, indices[scores_sort], :].astype(np.float64)
+    image_scores     = scores[scores_sort]
+    image_labels     = labels[0, indices[scores_sort]]
+
+    if nms_mode != "none":
+        if nms_mode != "argmax":
+            image_boxes, image_scores, image_labels = merge_boxes_per_label(image_boxes, image_scores, image_labels, 
+                                                                            max_iterations=mob_iterations, top_k=top_k,
+                                                                            iou_threshold=nms_threshold, merge_mode=nms_mode)
+        elif tiling_dim > 1: # we need to perform another NMS for tiling duplicates
+            # not using MOB to ensure reproducibility of earlier results, although it should be the same thing
+            # for performance sake, using MOB now
+            image_boxes, image_scores, image_labels = merge_boxes_per_label(image_boxes, image_scores, image_labels,
+                                                                            merge_mode="enclose", max_iterations=1,
+                                                                            iou_threshold=nms_threshold, top_k=1)
+    
+    # find the order with which to sort the scores
+    scores_sort = np.argsort(-image_scores)
+
+    image_boxes      = image_boxes[scores_sort, :]
+    image_scores     = image_scores[scores_sort]
+    image_labels     = image_labels[scores_sort]
+
+    return image_boxes, image_scores, image_labels
 
 
 def _get_detections(
@@ -123,8 +220,15 @@ def _get_detections(
 
     num_uploaded = 0
 
-    TILING_OVERLAP = 100
-    TRAIN_OVERLAP = 50
+    
+    if nms_mode != "argmax" and nms_mode != "none":
+        mob_iterations = 1
+        if eval_mode != "voc2012":
+            top_k = -1
+        if nms_mode == "enclose":
+            # make sure we merge everything in this mode
+            mob_iterations = 3
+            nms_threshold = 0
 
     for i in progressbar.progressbar(range(generator.size()), prefix='Running network: '):
 
@@ -132,92 +236,18 @@ def _get_detections(
         # do not include in perf measurement
         raw_image = generator.load_image(i)
         image = raw_image.copy()
-
         start = time.perf_counter()
         ############ Performance measurement per image start point ############
         image = generator.preprocess_image(image)
-
-        if tiling:
-            tile_size = imtools.grid_dim_to_tile_size(image, tiling, overlap=TILING_OVERLAP)
-            if tiling > 2:
-                generator.image_min_side = min(tile_size) - TILING_OVERLAP + TRAIN_OVERLAP // 2
-                generator.image_max_side = max(tile_size) - TILING_OVERLAP + TRAIN_OVERLAP // 2
-            image_parts, offsets = imtools.create_overlapping_tiled_mosaic(image, tile_size=tile_size,
-                                                                           overlap=TILING_OVERLAP, no_fill=True)
-        else:
-            image_parts = [image]
-            offsets = np.zeros((1, 2), dtype=int)
-        
-        all_boxes, all_scores, all_labels = [], [], []
-
-        for image, offset in zip(image_parts, offsets):
-            offset = np.tile(offset[::-1], 2)
-            image, scale = generator.resize_image(image)
-
-            if keras.backend.image_data_format() == 'channels_first':
-                image = image.transpose((2, 0, 1))
-
-            # run network
-            boxes, scores, labels = model.predict_on_batch(np.expand_dims(image, axis=0))[:3]
-
-            # correct boxes for image scale and translate subtiles to whole 
-            # image coordinate frame
-            boxes /= scale
-            boxes += offset
-
-            all_boxes.append(clip_aabb_array(raw_image.shape, boxes))
-            all_scores.append(scores)
-            all_labels.append(labels)
-
-        boxes = np.concatenate(all_boxes, axis=1)
-        scores = np.concatenate(all_scores, axis=1)
-        labels = np.concatenate(all_labels, axis=1)
-
-        # select indices which have a score above the threshold
-        indices = np.where(scores[0, :] > score_threshold)[0]
-
-        # select those scores
-        scores = scores[0, indices]
-
-        # find the order with which to sort the scores
-        scores_sort = np.argsort(-scores)[:max_detections]
-
-        # select detections
-        image_boxes      = boxes[0, indices[scores_sort], :].astype(np.float64)
-        image_scores     = scores[scores_sort]
-        image_labels     = labels[0, indices[scores_sort]]
-
-        if nms_mode != "none":
-            if nms_mode != "argmax":
-                iterations = 1
-                if eval_mode != "voc2012":
-                    top_k = -1
-                if nms_mode == "enclose":
-                    # make sure we merge everything in this mode
-                    iterations = 3
-                    nms_threshold = 0
-                image_boxes, image_scores, image_labels = merge_boxes_per_label(image_boxes, image_scores, image_labels, 
-                                                                                max_iterations=iterations, top_k=top_k,
-                                                                                iou_threshold=nms_threshold, merge_mode=nms_mode)
-            elif tiling: # we need to perform another NMS for tiling duplicates
-                # not using MOB to ensure reproducibility of earlier results, although it should be the same thing
-                # for performance sake, using MOB now
-                image_boxes, image_scores, image_labels = merge_boxes_per_label(image_boxes, image_scores, image_labels,
-                                                                                merge_mode="enclose", max_iterations=1,
-                                                                                iou_threshold=nms_threshold, top_k=1)
-                # nms_indices  = backend.non_max_suppression(image_boxes, image_scores, max_output_size=max_detections, iou_threshold=nms_threshold)
-                # nms_indices  = nms_indices.eval(session=tf.compat.v1.Session())
-                # image_boxes  = image_boxes[nms_indices, :]
-                # image_scores = image_scores[nms_indices]
-                # image_labels = image_labels[nms_indices]
-        
-        # find the order with which to sort the scores
-        scores_sort = np.argsort(-image_scores)
-
-        image_boxes      = image_boxes[scores_sort, :]
-        image_scores     = image_scores[scores_sort]
-        image_labels     = image_labels[scores_sort]
-
+        image_boxes, image_scores, image_labels = run_inference_on_image(model, image, generator.resize_image,
+            score_threshold=score_threshold, 
+            max_detections=max_detections,
+            tiling_dim=tiling,
+            top_k=top_k,
+            nms_threshold=nms_threshold,
+            nms_mode=nms_mode,
+            mob_iterations=mob_iterations
+        )
         image_detections = np.concatenate([image_boxes, np.expand_dims(image_scores, axis=1), np.expand_dims(image_labels, axis=1)], axis=1)
         ############ Performance measurement per image end point ############
         inference_time = time.perf_counter() - start

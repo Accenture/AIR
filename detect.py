@@ -25,7 +25,6 @@ Author: Pasi Pyrrö
 Date: 7.2.2020
 '''
 
-# %%
 import os
 import re
 import gc
@@ -33,6 +32,7 @@ import cv2
 import sys
 import time
 import argparse
+import functools
 import itertools
 import numpy as np
 from collections import deque
@@ -73,9 +73,13 @@ class Params(object):
     SHOW_DETECTION_N_FRAMES = 20
     USE_GPU = False
     PROFILE = False
-    IMAGE_TILING_DIM = 0
+    IMAGE_TILING_DIM = 1
     IMAGE_MIN_SIDE = 1525
     IMAGE_MAX_SIDE = 2025
+    MERGE_MODE = "argmax"
+    MOB_ITERS = 1
+    BBA_IOU_THRES = 0.5
+    TOP_K=-1
 
 
 def resolve_output_type(output):
@@ -135,6 +139,12 @@ def parse_args(parser=None):
                              "it should be located in the ../models/ directory!")
     parser.add_argument('-p', '--profile', default=Params.PROFILE, action="store_true",
                         help="ADVANCED: Enable execution profiling to find bottlenecks in the program performance")
+    parser.add_argument('--merge-mode', 
+                        help=f'ADVANCED: How to merge two overlapping detections in BBA (defaults to "{Params.MERGE_MODE}").', default=Params.MERGE_MODE)
+    parser.add_argument('--top_k',            
+                        help='ADVANCED: Number of top scoring bboxes to keep in merge cluster when nms_mode is not "argmax"', type=int, default=Params.TOP_K)
+    parser.add_argument('--bba_iou_threshold',    
+                        help=f'ADVANCED: BBA IoU threshold for two overlapping detections (defaults to {Params.BBA_IOU_THRES}).', default=Params.BBA_IOU_THRES, type=float)
 
     args = parser.parse_args()
     Params.CONFIG_FILE = args.config_file
@@ -180,9 +190,11 @@ if __name__ == '__main__':
 
 import keras
 from keras_retinanet.keras_retinanet import models
-from keras_retinanet.keras_retinanet.utils.image import read_image_bgr, preprocess_image_caffe_fast, resize_image, compute_resize_scale
+from keras_retinanet.keras_retinanet.utils.image import preprocess_image_caffe_fast, resize_image as resize_func
 from keras_retinanet.keras_retinanet.utils.visualization import draw_box, draw_caption
+from keras_retinanet.keras_retinanet.utils.eval import run_inference_on_image
 from keras_retinanet.keras_retinanet.utils.gpu import setup_gpu
+from keras_retinanet.keras_retinanet.utils import optimize_tf_parallel_processing
 
 from dataset.detection_exporter import DetectionExporter
 from video.video_iterator import VideoIterator
@@ -237,7 +249,7 @@ labels_to_names = labels_to_names_coco if Params.LABEL_MAPPING == "coco" else la
 
 # tracking options (you shouldn't need to touch these)
 KalmanConfig.DEFAULT_HISTORY_SPAN = [3, 5]
-KalmanConfig.DEFAULT_CONFIDENCE_BOUNDS = [0.5, 0.7]
+KalmanConfig.DEFAULT_CONFIDENCE_BOUNDS = [0.1, 0.2]
 KalmanConfig.TRACKING_DELTA_THRES_MULT = 4
 KalmanConfig.INITIAL_PROCESS_NOISE = 200
 KalmanConfig.INITIAL_COVARIANCE = 500
@@ -256,8 +268,10 @@ def main(exporter=None):
     if Params.USE_GPU:
         # use gpu:0
         setup_gpu(0)
+        optimize_tf_parallel_processing(2)
     else:
         setup_gpu("cpu")
+        optimize_tf_parallel_processing(8)
 
     if Params.PROFILE:
         import cProfile, pstats
@@ -266,6 +280,11 @@ def main(exporter=None):
     # load the inference model with selected backbone
     model_path = os.path.join(current_dir, 'models', Params.MODEL)
     model = models.load_model(model_path, backbone_name=Params.BACKBONE)
+
+    if Params.IMAGE_MIN_SIDE is None or Params.IMAGE_MAX_SIDE is None:
+        resize_image = None
+    else:
+        resize_image = functools.partial(resize_func, min_side=Params.IMAGE_MIN_SIDE, max_side=Params.IMAGE_MAX_SIDE)
 
     detection_exporter = exporter
 
@@ -277,15 +296,10 @@ def main(exporter=None):
     running_id = 1
     detections = []
     detection_disp_counter = 0
+    inference_count = 0
 
     old_bboxes, old_scores, old_labels = ([], [], [])
     bboxes, scores, labels = ([], [], [])
-
-    width, height = vid.read_video_resolution(Params.VIDEO_FILE)
-    frame_shape = (height, width, 3)
-    scale = compute_resize_scale(frame_shape)
-    resized_shape = (round(scale*height), round(scale*width), 3)
-    imagenet_mean = np.array([103.939, 116.779, 123.68], dtype=np.float32)
 
     if not Params.OUTPUT_PATH:
         dir_name, base_name = os.path.split(Params.VIDEO_FILE)
@@ -331,7 +345,6 @@ def main(exporter=None):
                 fps_timer = time.time()
                 fps_counter = 0
                                 
-                preprocessed_float32 = np.empty(resized_shape, dtype=np.float32)
                 gen = vi if Params.OUTPUT_TYPE == "video" else itertools.repeat(None)
                 fps_counter = 0 if Params.OUTPUT_TYPE == "video" else -Params.DETECT_EVERY_NTH_FRAME
                 for j, frame in enumerate(gen):
@@ -350,26 +363,28 @@ def main(exporter=None):
                         break
 
                     if i % Params.DETECT_EVERY_NTH_FRAME == 0 or Params.OUTPUT_TYPE != "video":
-                        
-                        image = cv2.resize(frame, None, fx=scale, fy=scale)  
-                        
-                        # Subtract ImageNet mean (vectorized version of preprocess_image())
-                        np.subtract(image, imagenet_mean, out=preprocessed_float32, casting="unsafe")
 
-                        bboxes, scores, labels = model.predict_on_batch(
-                            np.expand_dims(preprocessed_float32, axis=0))
+                        image = preprocess_image_caffe_fast(frame)
+                        bboxes, scores, labels = run_inference_on_image(model, image, resize_image,
+                            score_threshold=Params.CONFIDENCE_THRES,
+                            max_detections=Params.MAX_DETECTIONS_PER_FRAME // Params.IMAGE_TILING_DIM,
+                            top_k=Params.TOP_K,
+                            tiling_dim=Params.IMAGE_TILING_DIM,
+                            nms_threshold=Params.BBA_IOU_THRES,
+                            nms_mode=Params.MERGE_MODE,
+                            tiling_overlap=100,
+                            training_overlap=100,
+                            mob_iterations=Params.MOB_ITERS
+                        )
+                        inference_count += 1
 
-                        bboxes /= scale
-
-                        # extract valid detections
-                        valid_detections = [(b, s, l) for b, s, l in list(zip(bboxes[0], scores[0], labels[0]))[
-                            :Params.MAX_DETECTIONS_PER_FRAME] if s > Params.CONFIDENCE_THRES]
-                        if valid_detections:
+                        if bboxes.shape[0] > 0:
+                            valid_detections = True
                             detection_disp_counter = 0
-                            bboxes, scores, labels = list(zip(*valid_detections))
                             labels = [labels_to_names[l] for l in labels]
                             old_bboxes, old_scores, old_labels = bboxes, scores, labels
                         else:
+                            valid_detections = False
                             bboxes, scores, labels = ([], [], [])
                         if Params.INTERPOLATE_BETWEEN_DETECTIONS:
                             new_detections = kt.get_detections_from_bboxes(
@@ -388,7 +403,7 @@ def main(exporter=None):
                             if Params.OUTPUT_TYPE != "video":
                                 new_detections = kt.get_detections_from_bboxes(
                                     labels, bboxes, scores)
-                                detection_exporter.add_detections_at_frame(new_detections, i) # - 2*Params.DETECT_EVERY_NTH_FRAME)
+                                detection_exporter.add_detections_at_frame(new_detections, i)
                                 detection_exporter.update_timeseries(new_detections, i)
                             else:
                                 frame = kt.visualize_bboxes(
@@ -412,7 +427,7 @@ def main(exporter=None):
                     fps_counter += 1
                     if fps_counter >= 100:
                         processing_fps = fps_counter / (time.time() - fps_timer)
-                        print(f"Processed {i} frames ({(i)/(fps+1e-6):.1f} seconds of video), processing speed: {processing_fps:.1f} fps")
+                        print(f"Processed {i} frames ({(i)/(fps+1e-6):.1f} seconds of video), inferenced {inference_count} frames, overall processing speed: {processing_fps:.1f} fps")
                         fps_counter = 0
                         fps_counter = 0
                         fps_timer = time.time()

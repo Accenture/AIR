@@ -144,7 +144,7 @@ def parse_args(args):
 
     parser.add_argument('--model',            help='Path to RetinaNet model.', required=True)
     parser.add_argument('--convert_model',    help='Convert the model to an inference model (ie. the input is a training model).', type=bool_str, default=False)
-    parser.add_argument('--image_tiling_dim',     help='Split input image into <this param>^2 overlapping tiles before feeding it into the network.', type=int, default=0)
+    parser.add_argument('--image_tiling_dim', help='Split input image into <this param>^2 overlapping tiles before feeding it into the network.', type=int, default=0)
     parser.add_argument('--backbone',         help='The backbone of the model.', default='resnet50')
     parser.add_argument('--gpu',              help='Id of the GPU to use (as reported by nvidia-smi).', type=int)
     parser.add_argument('--score_threshold',  help='Threshold on score to filter detections with (defaults to 0.05).', default=0.05, type=float)

@@ -513,6 +513,8 @@ def resolve_color(color):
 
 
 def grid_dim_to_tile_size(im, grid_dim, overlap):
+    if grid_dim <= 1:
+        return im.shape[:2]
     return (im.shape[0] // grid_dim + overlap, im.shape[1] // grid_dim + overlap)  
 
 
