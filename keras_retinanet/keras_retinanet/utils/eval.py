@@ -56,7 +56,7 @@ assert(callable(progressbar.progressbar)), "Using wrong progressbar module, inst
 
 import wandb
 
-WANDB_ENABLED = os.environ["WANDB_MODE"] != "disabled"
+WANDB_ENABLED = os.environ.get("WANDB_MODE") != "disabled"
 MAX_NUM_UPLOAD_IMAGES = 10
 DISABLE_IMG_UPLOADS = False
 HERIDAL_VIS_SETTINGS = True

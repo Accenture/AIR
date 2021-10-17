@@ -731,5 +731,8 @@ def main(args=None):
 
 if __name__ == '__main__':
     # initialize weights and biases
-    wandb.init(entity="hypersphere", group="retinanet-train", project="masters-thesis")
+    if WANDB_ENABLED:
+        wandb.init(entity=os.environ.get("WANDB_ENTITY"),
+                   group=os.environ.get("WANDB_RUN_GROUP"),
+                   project=os.environ.get("WANDB_PROJECT"))
     main()

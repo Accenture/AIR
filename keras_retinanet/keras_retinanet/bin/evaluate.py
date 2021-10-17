@@ -43,7 +43,7 @@ from ..utils import seed, optimize_tf_parallel_processing
 import wandb
 import multiprocessing
 
-WANDB_ENABLED = os.environ["WANDB_MODE"] != "disabled"
+WANDB_ENABLED = os.environ.get("WANDB_MODE") != "disabled"
 
 NUM_PARALLEL_EXEC_UNITS = multiprocessing.cpu_count()
 
@@ -341,5 +341,7 @@ def main(args=None):
 if __name__ == '__main__':
     # initialize weights and biases
     if WANDB_ENABLED:
-        wandb.init(entity="hypersphere", group="retinanet-eval", project="masters-thesis")
+        wandb.init(entity=os.environ.get("WANDB_ENTITY"), 
+                   group=os.environ.get("WANDB_RUN_GROUP"),
+                   project=os.environ.get("WANDB_PROJECT"))
     main()
