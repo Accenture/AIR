@@ -45,7 +45,7 @@ def parse_args(args):
     parser.add_argument('--no-nms', help='Disables non maximum suppression.', dest='nms', action='store_false')
     parser.add_argument('--no-class-specific-filter', help='Disables class specific filtering.', dest='class_specific_filter', action='store_false')
     parser.add_argument('--config', help='Path to a configuration parameters .ini file.')
-    parser.add_argument('--anchor_scale', help='Scale the anchor boxes by this constant (e.g. if your objects are very small)', type=float, default=1.0)
+    parser.add_argument('--anchor-scale', help='Scale the anchor boxes by this constant (e.g. if your objects are very small)', type=float, default=1.0)
     parser.add_argument('--nms-threshold', help='Value for non maximum suppression threshold.', type=float, default=0.5)
     parser.add_argument('--score-threshold', help='Threshold for prefiltering boxes.', type=float, default=0.05)
     parser.add_argument('--max-detections', help='Maximum number of detections to keep.', type=int, default=300)
@@ -81,6 +81,7 @@ def main(args=None):
     # check if this is indeed a training model
     models.check_training_model(model)
 
+    print("Begin conversion...")
     # convert the model
     model = models.convert_model(
         model,
@@ -95,6 +96,7 @@ def main(args=None):
 
     # save model
     model.save(args.model_out)
+    print("Conversion done!")
 
 
 if __name__ == '__main__':
