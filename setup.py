@@ -71,8 +71,8 @@ setuptools.setup(
                         'cython', 'Pillow', 'opencv-python', 'progressbar2', 
                         'wandb==0.9.5', 'scikit-learn', 'matplotlib', 'filterpy'],
     extras_require   = {
-        "tf":        ["tensorflow==1.15.0"],
-        "tf_gpu":    ["tensorflow-gpu==1.15.0"],
+        "cpu":        ["tensorflow==1.15.0"],
+        "gpu":        ["tensorflow-gpu==1.15.0"],
     },
     entry_points     = {
         'console_scripts': [

@@ -29,9 +29,10 @@ or
 ## Quick native install instructions 
 - Clone this repo 
 - Download data set and model
-- build the AIR project by running: `pip3 install .`
-- evaluate the AIR detector by running: `bash evaluate.sh`
-- check `data/predictions/dauntless-sweep-2_resnet152_pascal-eval` for the output images
+- To build the AIR project for CPU, run the command: `pip3 install air-detector[cpu]`
+- To build the AIR project for GPU, run the command: `pip3 install air-detector[gpu]`
+- Test the AIR detector by running: `bash evaluate.sh`
+- Check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-sar-apd-eval` for the output images
 
 ## Wandb support
 - Experiment tracking software by [Weight & Biases](https://wandb.ai/home)
