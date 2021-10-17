@@ -197,8 +197,7 @@ def _get_detections(
     tiling=0,
     top_k=50,
     nms_threshold=0.5,
-    nms_mode="argmax",
-    eval_mode="voc2012"
+    nms_mode="argmax"
 ):
     """ Get the detections from the model using the generator.
 
@@ -219,12 +218,9 @@ def _get_detections(
     all_inferences = [None for i in range(generator.size())]
 
     num_uploaded = 0
-
     
     if nms_mode != "argmax" and nms_mode != "none":
         mob_iterations = 1
-        if eval_mode != "voc2012":
-            top_k = -1
         if nms_mode == "enclose":
             # make sure we merge everything in this mode
             mob_iterations = 3
@@ -391,6 +387,8 @@ def evaluate(
         # but allows sufficiently large bbox groups
         # this corresponds to ~1200x1200 pixel location accuracy requirement (~20x20 m in HERIDAL) 
         iou_threshold = 0.0025
+        if nms_mode != "argmax": # don't eliminate any boxes in a cluster
+            top_k = -1
 
     if WANDB_ENABLED:
         wandb.log({"iou_threshold": iou_threshold,
@@ -406,7 +404,7 @@ def evaluate(
     all_detections, all_inferences = _get_detections(generator, model, 
         score_threshold=score_threshold, max_detections=max_detections, 
         save_path=save_path, tiling=tiling, nms_threshold=nms_threshold,
-        nms_mode=nms_mode, eval_mode=mode, top_k=top_k)
+        nms_mode=nms_mode, top_k=top_k)
 
     if profile:
         pr.disable()
@@ -539,15 +537,15 @@ def evaluate(
                     f"{set_name}_mAP_{class_name}": average_precision
                 }
             )
-        else: 
-            print(
-                f"{set_name}_num_tp_{class_name}: {num_tp}\n"
-                f"{set_name}_num_fp_{class_name}: {num_fp}\n" 
-                f"{set_name}_num_anns_{class_name}: {num_annotations}\n"
-                f"{set_name}_recall_{class_name}: {overall_recall}\n"
-                f"{set_name}_precision_{class_name}: {overall_precision}\n"
-                f"{set_name}_mAP_{class_name}: {average_precision}\n\n"
-            )
+        
+        print(
+            f"\n{set_name}_num_tp_{class_name}: {num_tp}\n"
+            f"{set_name}_num_fp_{class_name}: {num_fp}\n" 
+            f"{set_name}_num_anns_{class_name}: {num_annotations}\n"
+            f"{set_name}_recall_{class_name}: {overall_recall}\n"
+            f"{set_name}_precision_{class_name}: {overall_precision}\n"
+            f"{set_name}_mAP_{class_name}: {average_precision}\n"
+        )
         average_precisions[label] = average_precision, num_annotations
 
     # inference time
