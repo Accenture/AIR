@@ -29,8 +29,8 @@ or
 ## Quick native install instructions 
 - Clone this repo 
 - Download data set and model
-- To build the AIR project for CPU, run the command: `pip3 install air-detector[cpu]`
-- To build the AIR project for GPU, run the command: `pip3 install air-detector[gpu]`
+- To build the AIR project for CPU, run the command: `/usr/bin/python3 -m pip install air-detector[cpu]`
+- To build the AIR project for GPU, run the command: `/usr/bin/python3 -m pip install air-detector[gpu]`
 - Test the AIR detector by running: `bash evaluate.sh`
 - Check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-sar-apd-eval` for the output images
 
