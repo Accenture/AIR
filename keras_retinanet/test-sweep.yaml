@@ -1,0 +1,56 @@
+project: masters-thesis
+entity: hypersphere
+program: keras_retinanet/bin/evaluate.py
+command:
+    # - ${env}
+    - python3
+    - ${program}
+    - ${args}
+    - --gpu=0
+    - --backbone=infer
+    - --group=retinanet-test-tiling-perf
+    - --tags=tiling-perf
+    - --config=config.ini
+    - --image_min_side=1525
+    - --image_max_side=2025
+    - --score_threshold=0.05
+    - --max_detections=100000
+    - --iou_threshold=0.5
+    - --nms_threshold=0.25
+    - --config=config.ini
+    - --anchor_scale=0.965
+    - --convert_model=true
+    # - --image_tiling=true
+    - --profile
+    - --nms_mode=enclose
+    - --eval_mode=sar-apd
+    # - --set_name=train
+    - --model=/scratch/cs/sar-uav-cv/masters-thesis/computer_vision/keras-retinanet/snapshots/dauntless-sweep-2_resnet152_pascal.h5
+    - pascal
+    - /tmp/UNIQUE_JOB_FOLDER/data/datasets/heridal_keras_retinanet_voc
+method: grid
+# metric:
+#   name: train_mAP_person
+#   goal: maximize
+parameters:
+  image_tiling_dim:
+    distribution: categorical
+    values: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10] 
+    # values: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+  set_name:
+    distribution: categorical
+    values: ["train", "test"]
+  # score_threshold:
+  #   distribution: uniform
+  #   min: 0.001
+  #   max: 0.05
+  # top_k:
+  #   distribution: int_uniform
+  #   min: 1
+  #   max: 100
+  #   # values: [5, 10, 25, 50, 75, 100, 250, 500]
+  # max_detections:
+  #   distribution: int_uniform
+  #   min: 50
+  #   max: 50000
+    # values: [100, 250, 500, 750, 1000, 5000, 10000, 50000]

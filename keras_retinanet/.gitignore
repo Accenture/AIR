@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+/build/
+/dist/
+/eggs/
+/*-eggs/
+.eggs/
+/sdist/
+/wheels/
+/*.egg-info/
+.installed.cfg
+*.egg
+
+# Unit test / coverage reports
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# wandb
+/wandb/
+
+# logs
+/keras_retinanet/logs/
+/slurm_out/
+/nvidia-mps/
+

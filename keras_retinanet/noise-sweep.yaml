@@ -1,0 +1,32 @@
+project: masters-thesis
+entity: hypersphere
+program: keras_retinanet/bin/train.py
+command:
+    - python3
+    - ${program}
+    - ${args}
+    - --random_transform=true
+    - --gpu=array
+    - --compute_val_loss
+    - --steps=5564
+    - --epochs=50
+    - --backbone=resnet152
+    - --group=retinanet-train-resnet152-noise-sweep
+    - --snapshot_interval=1
+    - --config=config.ini
+    - --no_resize=true
+    - --image_min_side=1525
+    - --image_max_side=2025
+    - --early_stop_patience=15
+    - --reduce_lr_patience=4
+    - --anchor_scale=0.965
+    - --reduce_lr_factor=0.33
+    - --lr=0.00002196
+    - pascal
+    - /tmp/UNIQUE_JOB_FOLDER/data/datasets/heridal_keras_retinanet_voc_tiled
+method: grid
+parameters:
+  seed:
+    distribution: categorical
+    values: [111, 222, 333, 444, 555, 666, 777, 888]
+

@@ -1,0 +1,45 @@
+project: masters-thesis
+entity: hypersphere
+program: keras_retinanet/bin/evaluate.py
+command:
+- python3
+- ${program}
+- ${args}
+- --gpu=0
+- --backbone=infer
+- --group=retinanet-test-tiling-perf
+- --tags=tiling-perf
+- --image_min_side=1525
+- --image_max_side=2025
+- --score_threshold=0.25
+- --max_detections=1000
+- --iou_threshold=0.5
+- --nms_threshold=0.25
+- --config=config.ini
+- --anchor_scale=0.965
+- --convert_model=true
+- --profile
+# - --image_tiling=true
+- --model=/scratch/cs/sar-uav-cv/masters-thesis/computer_vision/keras-retinanet/snapshots/dauntless-sweep-2_resnet152_pascal.h5
+- --nms_mode=argmax
+- --eval_mode=voc2012
+- pascal
+- /tmp/UNIQUE_JOB_FOLDER/data/datasets/heridal_keras_retinanet_voc
+method: grid
+parameters:
+  image_tiling_dim:
+    distribution: categorical
+    values: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  # model:
+  #   distribution: categorical
+  #   values:
+  #   - /scratch/cs/sar-uav-cv/masters-thesis/computer_vision/keras-retinanet/snapshots/different-lion-771_resnet50_pascal.h5
+  #   - /scratch/cs/sar-uav-cv/masters-thesis/computer_vision/keras-retinanet/snapshots/vital-sea-770_resnet101_pascal.h5
+  #   - /scratch/cs/sar-uav-cv/masters-thesis/computer_vision/keras-retinanet/snapshots/fluent-galaxy-729_resnet152_pascal.h5
+  #   - /scratch/cs/sar-uav-cv/masters-thesis/computer_vision/keras-retinanet/snapshots/silver-bush-787_seresnext101_pascal.h5
+  #   - /scratch/cs/sar-uav-cv/masters-thesis/computer_vision/keras-retinanet/snapshots/sweet-cloud-792_seresnet152_pascal.h5
+  #   - /scratch/cs/sar-uav-cv/masters-thesis/computer_vision/keras-retinanet/snapshots/colorful-shadow-786_EfficientNetB4_pascal.h5
+  #   - /scratch/cs/sar-uav-cv/masters-thesis/computer_vision/keras-retinanet/snapshots/silver-fire-780_densenet201_pascal.h5
+  set_name:
+    distribution: categorical
+    values: ["train", "test"]

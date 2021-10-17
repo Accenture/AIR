@@ -1,0 +1,83 @@
+project: masters-thesis
+entity: hypersphere
+program: keras_retinanet/bin/train.py
+command:
+    # - ${env}
+    - python3
+    - ${program}
+    - ${args}
+    - --random_transform=true
+    - --gpu=array
+    - --compute_val_loss
+    # - --seed=111
+    - --steps=5564
+    - --epochs=50
+    - --backbone=EfficientNetB4
+    - --group=retinanet-train-effnetb6-signal-tiled-sweep
+    - --snapshot_interval=1
+    - --config=config.ini
+    - --no_resize=true
+    - --image_min_side=1525
+    - --image_max_side=2025
+    - --early_stop_patience=10
+    - --reduce_lr_patience=4
+    - --anchor_scale=0.965
+    - --reduce_lr_factor=0.33
+    - pascal
+    - /tmp/UNIQUE_JOB_FOLDER/data/datasets/heridal_keras_retinanet_voc_tiled
+method: bayes
+metric:
+  name: mAP
+  goal: maximize
+parameters:
+  lr:
+    distribution: uniform
+    min: 0.00002
+    max: 0.004
+  # reduce_lr_factor:
+  #   distribution: uniform
+  #   min: 0.3
+  #   max: 0.4
+  seed:
+    distribution: int_uniform
+    min: 0
+    max: 100000
+  loss_alpha_factor:
+    distribution: categorical
+    values: [0.25, 0.5, 0.75, 0.9]
+  # reduce_lr_patience:
+  #   distribution: int_uniform
+  #   min: 2
+  #   max: 5
+  # early_stop_patience:
+  #   distribution: int_uniform
+  #   min: 3
+  #   max: 6
+  # freeze_backbone:
+  #   distribution: categorical
+  #   values:
+  #     - true
+  #     - false
+  # random_transform:
+  #   distribution: categorical
+  #   values:
+  #     - true
+  #     - false
+#   backbone:
+#     distribution: categorical
+#     values:
+#       - resnet50
+    #   - EfficientNetB0
+  # anchor_scale:
+  #   distribution: uniform
+  #   min: 0.85
+  #   max: 1.15
+  # no_resize:
+  #   distribution: categorical
+  #   values:
+  #     - true
+  #     - false
+#   image_min_side:
+#     distribution: int_uniform
+#     min: 600
+#     max: 1200
