@@ -55,6 +55,7 @@ class Params(object):
 
     # output options
     OUTPUT_TYPE = "json"
+    LABEL_MAPPING = "pascal"
     VIDEO_FILE = None
     OUT_RESOLUTION = None
     OUTPUT_PATH = None
@@ -63,10 +64,10 @@ class Params(object):
     COMPRESS_VIDEO = True
 
     # algorithm parameters
-    MODEL = "resnet50_coco_60_inference.h5"
-    BACKBONE = "resnet50"
-    BATCH_SIZE = 2
-    CONFIDENCE_THRES = 0.8
+    MODEL = "dauntless-sweep-2_resnet152_pascal-nms-inference.h5"
+    BACKBONE = "resnet152"
+    BATCH_SIZE = 1
+    CONFIDENCE_THRES = 0.25
     DETECT_EVERY_NTH_FRAME = 60
     MAX_DETECTIONS_PER_FRAME = 20
     INTERPOLATE_BETWEEN_DETECTIONS = True
@@ -92,6 +93,9 @@ def parse_args(parser=None):
                         help="Load settings from a configuration file in the /config/ folder")
     parser.add_argument('-i', '--input', help="Input video path")
     parser.add_argument('-o', '--output', default=Params.OUTPUT_PATH, help="Output video path")
+    parser.add_argument('-lm', '--label-mapping', default=Params.LABEL_MAPPING,
+                        const=Params.LABEL_MAPPING, nargs="?", choices=("pascal", "coco"),
+                        help=f'Select label mapping from object id to name (default: "{Params.LABEL_MAPPING}")')
     parser.add_argument('-r', '--resolution', type=int,
                         nargs=2, help="Output video resolution")
     parser.add_argument('-n', '--num-frames', type=int,
@@ -167,10 +171,10 @@ if __name__ == '__main__':
 
 
 import keras
-from keras_retinanet import models
-from keras_retinanet.utils.image import read_image_bgr, preprocess_image, resize_image, compute_resize_scale
-from keras_retinanet.utils.visualization import draw_box, draw_caption
-from keras_retinanet.utils.gpu import setup_gpu
+from keras_retinanet.keras_retinanet import models
+from keras_retinanet.keras_retinanet.utils.image import read_image_bgr, preprocess_image, resize_image, compute_resize_scale
+from keras_retinanet.keras_retinanet.utils.visualization import draw_box, draw_caption
+from keras_retinanet.keras_retinanet.utils.gpu import setup_gpu
 
 from dataset.detection_exporter import DetectionExporter
 from video.video_iterator import VideoIterator
@@ -179,25 +183,48 @@ from kalman_tracker import KalmanConfig
 import video.vidtools as vid
 import kalman_tracker as kt
 
-
-
 # coco dataset labels
-labels_to_names = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 4: 'airplane',
-                   5: 'bus', 6: 'train', 7: 'truck', 8: 'boat', 9: 'traffic light',
-                   10: 'fire hydrant', 11: 'stop sign', 12: 'parking meter', 13: 'bench',
-                   14: 'bird', 15: 'cat', 16: 'dog', 17: 'horse', 18: 'sheep', 19: 'cow',
-                   20: 'elephant', 21: 'bear', 22: 'zebra', 23: 'giraffe', 24: 'backpack',
-                   25: 'umbrella', 26: 'handbag', 27: 'tie', 28: 'suitcase', 29: 'frisbee',
-                   30: 'skis', 31: 'snowboard', 32: 'sports ball', 33: 'kite', 34: 'baseball bat',
-                   35: 'baseball glove', 36: 'skateboard', 37: 'surfboard', 38: 'tennis racket',
-                   39: 'bottle', 40: 'wine glass', 41: 'cup', 42: 'fork', 43: 'knife', 44: 'spoon',
-                   45: 'bowl', 46: 'banana', 47: 'apple', 48: 'sandwich', 49: 'orange', 50: 'broccoli',
-                   51: 'carrot', 52: 'hot dog', 53: 'pizza', 54: 'donut', 55: 'cake', 56: 'chair',
-                   57: 'couch', 58: 'potted plant', 59: 'bed', 60: 'dining table', 61: 'toilet', 62: 'tv',
-                   63: 'laptop', 64: 'mouse', 65: 'remote', 66: 'keyboard', 67: 'cell phone',
-                   68: 'microwave', 69: 'oven', 70: 'toaster', 71: 'sink', 72: 'refrigerator',
-                   73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear',
-                   78: 'hair drier', 79: 'toothbrush'}
+labels_to_names_coco = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 4: 'airplane',
+                        5: 'bus', 6: 'train', 7: 'truck', 8: 'boat', 9: 'traffic light',
+                        10: 'fire hydrant', 11: 'stop sign', 12: 'parking meter', 13: 'bench',
+                        14: 'bird', 15: 'cat', 16: 'dog', 17: 'horse', 18: 'sheep', 19: 'cow',
+                        20: 'elephant', 21: 'bear', 22: 'zebra', 23: 'giraffe', 24: 'backpack',
+                        25: 'umbrella', 26: 'handbag', 27: 'tie', 28: 'suitcase', 29: 'frisbee',
+                        30: 'skis', 31: 'snowboard', 32: 'sports ball', 33: 'kite', 34: 'baseball bat',
+                        35: 'baseball glove', 36: 'skateboard', 37: 'surfboard', 38: 'tennis racket',
+                        39: 'bottle', 40: 'wine glass', 41: 'cup', 42: 'fork', 43: 'knife', 44: 'spoon',
+                        45: 'bowl', 46: 'banana', 47: 'apple', 48: 'sandwich', 49: 'orange', 50: 'broccoli',
+                        51: 'carrot', 52: 'hot dog', 53: 'pizza', 54: 'donut', 55: 'cake', 56: 'chair',
+                        57: 'couch', 58: 'potted plant', 59: 'bed', 60: 'dining table', 61: 'toilet', 62: 'tv',
+                        63: 'laptop', 64: 'mouse', 65: 'remote', 66: 'keyboard', 67: 'cell phone',
+                        68: 'microwave', 69: 'oven', 70: 'toaster', 71: 'sink', 72: 'refrigerator',
+                        73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear',
+                        78: 'hair drier', 79: 'toothbrush'}
+
+labels_to_names_pascal = {
+    0  : 'aeroplane',
+    1  : 'bicycle',
+    2  : 'bird',
+    3  : 'boat' ,
+    4  : 'bottle',  
+    5  : 'bus',     
+    6  : 'car',
+    7  : 'cat',
+    8  : 'chair',
+    9  : 'cow',     
+    10 : 'diningtable',
+    11 : 'dog',
+    12 : 'horse',       
+    13 : 'motorbike',  
+    14 : 'person', 
+    15 : 'pottedplant', 
+    16 : 'sheep',
+    17 : 'sofa',      
+    18 : 'train',       
+    19 : 'tvmonitor',
+}
+
+labels_to_names = labels_to_names_coco if Params.LABEL_MAPPING == "coco" else labels_to_names_pascal
 
 
 # tracking options (you shouldn't need to touch these)
@@ -209,13 +236,14 @@ KalmanConfig.INITIAL_COVARIANCE = 500
 KalmanConfig.INITIAL_MEASUREMENT_NOISE = 50
 KalmanConfig.TIMESTEP = 1
 
+
 def main(exporter=None):
 
     # make sure we use absolute path
     if not os.path.isabs(Params.VIDEO_FILE):
         Params.VIDEO_FILE = os.path.join(current_dir, Params.VIDEO_FILE)
 
-    assert os.path.exists(Params.VIDEO_FILE), "Input video file does not exist!"
+    assert os.path.exists(Params.VIDEO_FILE), f"Input video file '{Params.VIDEO_FILE}' does not exist!"
 
     if Params.USE_GPU:
         # use gpu:0
@@ -228,7 +256,7 @@ def main(exporter=None):
         pr = cProfile.Profile(builtins=False)
 
     # load the inference model with selected backbone
-    model_path = os.path.join(os.path.dirname(current_dir), 'models', Params.MODEL)
+    model_path = os.path.join(current_dir, 'models', Params.MODEL)
     model = models.load_model(model_path, backbone_name=Params.BACKBONE)
 
     detection_exporter = exporter
@@ -257,13 +285,15 @@ def main(exporter=None):
         vid_file_name, vid_file_ext = os.path.splitext(base_name)
         if Params.OUTPUT_TYPE == "video":
             out_path = os.path.join(
-                dir_name, vid_file_name + "_out_retinanet" + vid_file_ext)
+                dir_name, vid_file_name + "_air_output" + vid_file_ext)
         elif Params.OUTPUT_TYPE == "json":
             out_path = os.path.join(
                 dir_name, vid_file_name + ".json")
         else:
             out_path = ""
     else:
+        if not os.path.exists(Params.OUTPUT_PATH):
+            os.makedirs(os.path.dirname(Params.OUTPUT_PATH), exist_ok=True)
         out_path = Params.OUTPUT_PATH
 
     real_fps = vid.read_video_fps(Params.VIDEO_FILE)
@@ -271,14 +301,16 @@ def main(exporter=None):
     in_res = vid.read_video_resolution(Params.VIDEO_FILE)
     
     CHUNK_SIZE = Params.DETECT_EVERY_NTH_FRAME * Params.BATCH_SIZE
-    disable_video = Params.OUTPUT_TYPE != valid_output_types[0]
+    disable_video = Params.OUTPUT_TYPE.lower() != valid_output_types[0]
     if Params.OUT_RESOLUTION is None:
         Params.OUT_RESOLUTION = in_res
     if detection_exporter is None:
         detection_exporter = DetectionExporter(out_path, real_fps, in_res, Params.OUT_RESOLUTION, 
                                                Params.DETECT_EVERY_NTH_FRAME, placeholder=Params.OUTPUT_TYPE == "video")
+    print("!!!!!", Params.OUTPUT_TYPE, fps, Params.OUT_RESOLUTION)
     with detection_exporter:
-        with VideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="avc1", placeholder=disable_video) as writer:
+        # codec="avc1"
+        with VideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", placeholder=disable_video) as writer:
             with VideoIterator(Params.VIDEO_FILE, max_slice=CHUNK_SIZE) as vi:
                 print("* * * * *")
                 print(f"Starting people detection from frame #{Params.FRAME_OFFSET}")
