@@ -4,27 +4,27 @@
 
 
 ## Hardware Requirements
-- x86 or x64 processor architecture (atleast for Docker installation)
-- Nvidia GPU (recommended) with CUDA capability 6.0 or higher
+- x86 or x64 processor architecture (at least for Docker installation)
+- NVIDIA® GPU with CUDA® capability 3.5 or higher (recommended)
 
 ## Software Requirements
 
-Either 
+Either
 - Docker
 
 or
 - Python 3.6
-- pip
+- `pip` and `setuptools`
 - Linux or Mac OS (not tested on Windows)
-
 
 ## Quick install instructions using Docker
 - Clone this repo 
 - Download data set and model
-- Start docker environment by running: `bash keras-retinanet-env.sh`
+- Either start docker CPU environment by running: `bash keras-retinanet-env.sh`
+- Or start docker GPU environment by running: `bash keras-retinanet-gpu-env.sh`
 - Inside docker container, build the AIR project by running: `pip3 install .`
 - evaluate the AIR detector by running: `bash evaluate.sh`
-- check `data/predictions/dauntless-sweep-2_resnet152_pascal-eval` for the output images
+- check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-sar-apd-eval` for the output images
 
 ## Quick native install instructions 
 - Clone this repo 
