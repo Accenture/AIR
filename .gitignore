@@ -5,6 +5,7 @@
 /data/datasets/*
 /data/predictions/*
 /data/videos/*
+/data/images/*
 /keras-retinanet/build/
 *.pyc
 **/__pycache__/
