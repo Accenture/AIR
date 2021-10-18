@@ -31,13 +31,11 @@ NUM_PARALLEL_EXEC_UNITS = 8
 import argparse
 import os
 import sys
+import time
 import warnings
 import numpy as np
 import random
 import functools
-
-# if "SLURM_ARRAY_TASK_ID" in os.environ:
-#     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["SLURM_ARRAY_TASK_ID"]
 
 import keras
 import keras.preprocessing.image
@@ -211,10 +209,14 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     if args.snapshots:
         # ensure directory created first; otherwise h5py will error after epoch.
         makedirs(args.snapshot_path)
+        try:
+            run_name = wandb.run.name
+        except:
+            run_name = f"air_model_{int(time.time())}"
         checkpoint = keras.callbacks.ModelCheckpoint(
             os.path.join(
                 args.snapshot_path,
-                '{run_name}_{backbone}_{dataset_type}.h5'.format(run_name=wandb.run.name, 
+                '{run_name}_{backbone}_{dataset_type}.h5'.format(run_name=run_name, 
                     backbone=args.backbone, dataset_type=args.dataset_type)
             ),
             verbose=1,
@@ -499,7 +501,6 @@ def parse_args(args):
     parser.add_argument('--reduce_lr_factor', help='When learning rate is reduced due to reduce_lr_patience, multiply by reduce_lr_factor', type=float, default=0.1)
     parser.add_argument('--early_stop_patience', help='Stop training early if mAP has not increased for early_stop_patience epochs', type=int, default=5)
     parser.add_argument('--anchor_scale',     help='Scale the anchor boxes by this constant (e.g. if your objects are very small)', type=float, default=1.0)
-    parser.add_argument('--test_after_training', help="Evaluate model on test set after training", type=bool_str, default=True)
 
     parser.add_argument("--foreground_overlap_threshold", help="Minimum overlap (IoU 0.1-0.9) with Anchor and GT box to consider"
                         "the anchor as positive (i.e. contributes to foreground class learning)", type=float, default=0.5)
@@ -519,6 +520,9 @@ def parse_args(args):
 
 
 def main(args=None):
+    
+    WANDB_ENABLED = os.environ.get("WANDB_MODE") != "disabled"
+
     # parse arguments
     if args is None:
         args = sys.argv[1:]
@@ -528,36 +532,43 @@ def main(args=None):
     if args.seed:
         seed(args.seed)
 
-    # save arguments to weights and biases
-    wandb.config.update(args)
+    # initialize weights and biases
+    if WANDB_ENABLED:
+        wandb.init(entity=os.environ.get("WANDB_ENTITY"),
+                   group=os.environ.get("WANDB_RUN_GROUP"),
+                   project=os.environ.get("WANDB_PROJECT"))
+        # save arguments to weights and biases
+        wandb.config.update(args)
 
-    if args.name is not None:
-        wandb.run.name = args.name
-    
-    if args.group is not None:
-        wandb.run.group = args.group
+        if args.name is not None:
+            wandb.run.name = args.name
+        
+        if args.group is not None:
+            wandb.run.group = args.group
 
-    # puts some tags on the run to distinguish it from other runs
-    wandb.run.tags += ["train", args.backbone]
+        # puts some tags on the run to distinguish it from other runs
+        wandb.run.tags += ["train", args.backbone]
 
-    if args.config and "3_levels" in args.config:
-        wandb.run.tags.append("FPN-3")
+        if args.config and "3_levels" in args.config:
+            wandb.run.tags.append("FPN-3")
 
-    if args.foreground_overlap_threshold:
-        wandb.run.tags.append(f"AFGR-{args.foreground_overlap_threshold:.2f}".rstrip("0"))
-    
-    if args.loss_alpha_factor:
-        wandb.run.tags.append(f"LAF-{args.loss_alpha_factor:.2f}".rstrip("0"))
-    
-    if args.random_transform:
-        wandb.run.tags.append("data-augmentation")
-    
-    wandb.run.tags += args.tags
+        if args.foreground_overlap_threshold:
+            wandb.run.tags.append(f"AFGR-{args.foreground_overlap_threshold:.2f}".rstrip("0"))
+        
+        if args.loss_alpha_factor:
+            wandb.run.tags.append(f"LAF-{args.loss_alpha_factor:.2f}".rstrip("0"))
+        
+        if args.random_transform:
+            wandb.run.tags.append("data-augmentation")
+        
+        wandb.run.tags += args.tags
 
-    wandb.run.save()
+        wandb.run.save()
 
-    print(f"Starting RetinaNet training session '{wandb.run.name}' "
-          f"with '{args.backbone}' backbone inside group '{wandb.run.group}'...")
+        print(f"Starting AIR training session '{wandb.run.name}' "
+              f"with '{args.backbone}' backbone inside group '{wandb.run.group}'...")
+    else:
+        print(f"Starting AIR training session with '{args.backbone}' backbone...")
     print(f"Running {args.epochs} epochs with {args.steps} steps each...")
 
     # create object that stores backbone information
@@ -573,10 +584,6 @@ def main(args=None):
         path_key = "coco_path"
 
     arg_dict = vars(args)
-
-    # if "SLURM_ARRAY_JOB_ID" in os.environ:
-    #     arg_dict[path_key] = arg_dict[path_key].replace("UNIQUE_JOB_FOLDER", 
-    #         "{}_{}".format(os.environ["SLURM_ARRAY_JOB_ID"], os.environ["SLURM_ARRAY_TASK_ID"]))
     
     if "SLURM_JOB_ID" in os.environ:
         print("Slurm Job ID is", os.environ["SLURM_JOB_ID"])
@@ -602,10 +609,12 @@ def main(args=None):
         dataset_folder = os.path.dirname(arg_dict["annotations"])
     metadata = compute_dataset_metadata(dataset_folder)
     print("\n".join([f"{k}: {v}" for k, v in metadata.items()]))
-    wandb.config.update(metadata)
 
-    if "tiled" in wandb.config.dataset_name:
-        wandb.run.tags.append("tiled-images")
+    if WANDB_ENABLED:
+        wandb.config.update(metadata)
+
+        if "tiled" in wandb.config.dataset_name:
+            wandb.run.tags.append("tiled-images")
 
     config = None
 
@@ -681,58 +690,38 @@ def main(args=None):
     if not args.compute_val_loss:
         validation_generator = None
 
-    callbacks += [wandb.keras.WandbCallback(
-                    data_type="image",
-                    monitor="mAP",
-                    mode="max",
-                    labels=['aeroplane', 'bicycle', 'bird',
-                            'boat', 'bottle', 'bus',
-                            'car', 'cat', 'chair',
-                            'cow', 'diningtable', 'dog',
-                            'horse', 'motorbike', 'person',
-                            'pottedplant', 'sheep', 'sofa',
-                            'train', 'tvmonitor'],
-                    save_model=False)]
+    if WANDB_ENABLED:
+        callbacks += [wandb.keras.WandbCallback(
+                        data_type="image",
+                        monitor="mAP",
+                        mode="max",
+                        labels=['aeroplane', 'bicycle', 'bird',
+                                'boat', 'bottle', 'bus',
+                                'car', 'cat', 'chair',
+                                'cow', 'diningtable', 'dog',
+                                'horse', 'motorbike', 'person',
+                                'pottedplant', 'sheep', 'sofa',
+                                'train', 'tvmonitor'],
+                        save_model=False)]
                     # generator=validation_generator,
                     # validation_steps=1)]
 
     print("Callbacks ready, starting training...")
     train_history = training_model.fit_generator(
         generator=train_generator,
-        # x=train_generator,
         steps_per_epoch=args.steps,
         epochs=args.epochs,
         verbose=1,
         callbacks=callbacks,
-        workers=1, # args.workers,
-        use_multiprocessing=False, #args.multiprocessing,
-        max_queue_size=16, #args.max_queue_size,
+        workers=1, 
+        use_multiprocessing=False, 
+        max_queue_size=16,
         validation_data=validation_generator,
         initial_epoch=args.initial_epoch
     )
-
-    if args.test_after_training:
-        from copy import deepcopy
-        trained_model_path = os.path.join(os.path.dirname(__file__), "..", 
-            "snapshots", f"{wandb.run.name}_{args.backbone}_{args.dataset_type}.h5")
-        if os.path.exists(trained_model_path):
-            test_args = deepcopy(args)
-            vars(test_args)["model"] = trained_model_path
-            default_args = evaluate.default_args()
-            for key in default_args:
-                if key not in vars(test_args):
-                    vars(test_args)[key] = default_args[key]
-            evaluate.main(test_args)
-        else:
-            print("No trained model found to evaluate...")
 
     return train_history
 
 
 if __name__ == '__main__':
-    # initialize weights and biases
-    if WANDB_ENABLED:
-        wandb.init(entity=os.environ.get("WANDB_ENTITY"),
-                   group=os.environ.get("WANDB_RUN_GROUP"),
-                   project=os.environ.get("WANDB_PROJECT"))
     main()
