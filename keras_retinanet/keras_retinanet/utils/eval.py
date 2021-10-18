@@ -43,6 +43,7 @@ from .transform import clip_aabb_array
 from .image import resize_image as resize_func
 from .visualization import draw_detections, draw_annotations
 from ..preprocessing.pascal_voc import voc_classes, PascalVocGenerator
+from ..preprocessing.inference import InferenceGenerator
 from .. import backend
 import tensorflow as tf
 
@@ -60,8 +61,6 @@ assert(callable(progressbar.progressbar)), "Using wrong progressbar module, inst
 
 import wandb
 
-
-WANDB_ENABLED = os.environ.get("WANDB_MODE") != "disabled"
 MAX_NUM_UPLOAD_IMAGES = 10
 DISABLE_IMG_UPLOADS = False
 HERIDAL_VIS_SETTINGS = True
@@ -188,7 +187,7 @@ def run_inference_on_image(
     return image_boxes, image_scores, image_labels
 
 
-def _get_detections(
+def get_detections(
     generator, 
     model, 
     score_threshold=0.01, 
@@ -197,7 +196,9 @@ def _get_detections(
     tiling=0,
     top_k=50,
     nms_threshold=0.5,
-    nms_mode="argmax"
+    nms_mode="argmax",
+    wandb_logging=False,
+    profile=False,
 ):
     """ Get the detections from the model using the generator.
 
@@ -214,8 +215,14 @@ def _get_detections(
     # Returns
         A list of lists containing the detections for each image in the generator.
     """
+    if profile:
+        import cProfile, pstats
+        pr = cProfile.Profile(builtins=False)
+        pr.enable()
+        print("Execution profiler is turned ON")
+
     all_detections = [[None for i in range(generator.num_classes()) if generator.has_label(i)] for j in range(generator.size())]
-    all_inferences = [None for i in range(generator.size())]
+    all_inference_times = [None for i in range(generator.size())]
 
     num_uploaded = 0
     
@@ -259,15 +266,17 @@ def _get_detections(
                 det_color = None
                 draw_labels = True
 
-            save_image = draw_annotations(raw_image.copy(), generator.load_annotations(i), color=ann_color, 
-                                          label_to_name=generator.label_to_name, draw_labels=draw_labels)
+            save_image = raw_image.copy()
+            if not isinstance(generator, InferenceGenerator):
+                save_image = draw_annotations(save_image, generator.load_annotations(i), color=ann_color, 
+                                              label_to_name=generator.label_to_name, draw_labels=draw_labels)
             save_image = draw_detections(save_image, image_boxes, image_scores, image_labels, color=det_color, 
                                          label_to_name=generator.label_to_name, score_threshold=score_threshold,
                                          draw_labels=draw_labels)
 
             cv2.imwrite(os.path.join(save_path, '{}.png'.format(i)), save_image)
 
-        if WANDB_ENABLED and not DISABLE_IMG_UPLOADS and i % 14 == 0 and isinstance(generator, PascalVocGenerator) and num_uploaded < MAX_NUM_UPLOAD_IMAGES:
+        if wandb_logging and not DISABLE_IMG_UPLOADS and i % 14 == 0 and isinstance(generator, PascalVocGenerator) and num_uploaded < MAX_NUM_UPLOAD_IMAGES:
             anns = generator.load_annotations(i)
             if isinstance(anns, np.ndarray):
                 anns = {'bboxes': anns[:, :4], 'labels': anns[:, 4]}
@@ -320,9 +329,16 @@ def _get_detections(
 
             all_detections[i][label] = image_detections[image_detections[:, -1] == label, :-1]
 
-        all_inferences[i] = inference_time
+        all_inference_times[i] = inference_time
+    
+    if profile:
+        pr.disable()
+        ps = pstats.Stats(pr)
+        ps.sort_stats("cumulative")
+        # ps.reverse_order()
+        ps.print_stats(50)
 
-    return all_detections, all_inferences
+    return all_detections, all_inference_times
 
 
 def _get_annotations(generator):
@@ -364,7 +380,8 @@ def evaluate(
     save_path=None,
     mode="voc2012",
     tiling=0,
-    profile=False
+    profile=False,
+    wandb_logging=False,
 ):
     """ Evaluate a given dataset using a given model.
 
@@ -390,33 +407,19 @@ def evaluate(
         if nms_mode != "argmax": # don't eliminate any boxes in a cluster
             top_k = -1
 
-    if WANDB_ENABLED:
+    if wandb_logging:
         wandb.log({"iou_threshold": iou_threshold,
             "score_threshold": score_threshold})
     
-    if profile:
-        import cProfile, pstats
-        pr = cProfile.Profile(builtins=False)
-        pr.enable()
-        print("Execution Profiler is turned ON")
-
     # gather all detections and annotations
-    all_detections, all_inferences = _get_detections(generator, model, 
+    all_detections, all_inference_times = get_detections(generator, model, 
         score_threshold=score_threshold, max_detections=max_detections, 
         save_path=save_path, tiling=tiling, nms_threshold=nms_threshold,
-        nms_mode=nms_mode, top_k=top_k)
-
-    if profile:
-        pr.disable()
-        ps = pstats.Stats(pr)
-        ps.sort_stats("cumulative")
-        # ps.reverse_order()
-        ps.print_stats(50)
+        nms_mode=nms_mode, top_k=top_k, wandb_logging=wandb_logging, 
+        profile=profile)
         
     all_annotations    = _get_annotations(generator)
     average_precisions = {}
-
-    
 
     set_name = generator.set_name
 
@@ -458,7 +461,7 @@ def evaluate(
                 if mode == "voc2012":
                     start_idx = np.argmax(overlaps)
                     end_idx = start_idx + 1
-                else:
+                else: # SAR-APD evaluation checks all GT labels
                     start_idx = 0
                     end_idx = overlaps.shape[0]
                 
@@ -519,7 +522,7 @@ def evaluate(
         # compute average precision
         average_precision  = _compute_ap(recall, precision)
         
-        if WANDB_ENABLED:
+        if wandb_logging:
             # plot precision recall curve
             if recall.size > 0 and precision.size > 0:
                 plt.plot(recall, precision)
@@ -549,8 +552,8 @@ def evaluate(
         average_precisions[label] = average_precision, num_annotations
 
     # inference time
-    mean_inference_time = np.sum(all_inferences) / generator.size()
-    if WANDB_ENABLED:
+    mean_inference_time = np.sum(all_inference_times) / generator.size()
+    if wandb_logging:
         wandb.log({f"{set_name}_mean_inference_time": mean_inference_time})
     return average_precisions, mean_inference_time
 

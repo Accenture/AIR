@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Copyright 2017-2018 Fizyr (https://fizyr.com)
@@ -42,8 +42,6 @@ from ..utils import seed, optimize_tf_parallel_processing
 
 import wandb
 import multiprocessing
-
-WANDB_ENABLED = os.environ.get("WANDB_MODE") != "disabled"
 
 NUM_PARALLEL_EXEC_UNITS = multiprocessing.cpu_count()
 
@@ -121,7 +119,7 @@ def default_args():
 def parse_args(args):
     """ Parse the arguments.
     """
-    parser     = argparse.ArgumentParser(description='Evaluation script for a RetinaNet network.')
+    parser     = argparse.ArgumentParser(description='Evaluation script for the AIR detector.')
     subparsers = parser.add_subparsers(help='Arguments for specific dataset types.', dest='dataset_type')
     subparsers.required = True
 
@@ -175,6 +173,12 @@ def parse_args(args):
 
 
 def main(args=None):
+    # initialize weights and biases
+    WANDB_ENABLED = os.environ.get("WANDB_MODE") != "disabled"
+    if WANDB_ENABLED:
+        wandb.init(entity=os.environ.get("WANDB_ENTITY"),
+                   group=os.environ.get("WANDB_RUN_GROUP"),
+                   project=os.environ.get("WANDB_PROJECT"))
     # parse arguments
     if args is None:
         args = sys.argv[1:]
@@ -252,12 +256,6 @@ def main(args=None):
     check_keras_version()
     check_tf_version()
 
-    # optionally choose specific GPU
-    # if args.gpu:
-        # setup_gpu(args.gpu)
-
-    # else:
-
     # optimize parallel thread usage on CPU and configure GPU
     optimize_tf_parallel_processing(NUM_PARALLEL_EXEC_UNITS, gpu_id=args.gpu)
 
@@ -316,7 +314,8 @@ def main(args=None):
             save_path=args.save_path,
             mode=args.eval_mode,
             tiling=args.image_tiling_dim,
-            profile=args.profile
+            profile=args.profile,
+            wandb_logging=WANDB_ENABLED
         )
 
         # print evaluation
@@ -339,9 +338,4 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-    # initialize weights and biases
-    if WANDB_ENABLED:
-        wandb.init(entity=os.environ.get("WANDB_ENTITY"), 
-                   group=os.environ.get("WANDB_RUN_GROUP"),
-                   project=os.environ.get("WANDB_PROJECT"))
     main()

@@ -27,10 +27,22 @@ if not __package__:
 
 import numpy as np
 import cv2
+import imghdr
 from PIL import Image, ImageOps
 from functools import partial
 
 from .transform import change_transform_origin, _sample_discrete
+
+
+def is_image(file_path):
+    '''
+    Checks whether the input file is an image according to this list:
+    https://docs.python.org/3/library/imghdr.html
+    '''
+    try:
+        return type(imghdr.what(file_path)) is str
+    except:
+        return False
 
 
 def read_image_bgr(path):

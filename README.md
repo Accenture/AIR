@@ -4,21 +4,22 @@
 
 
 ## Hardware Requirements
-- x86 or x64 processor architecture (at least for Docker installation)
+- x86 or x64 processor architecture (at least for the Docker installation)
 - NVIDIA® GPU with CUDA® capability 3.5 or higher (recommended)
 
 ## Software Requirements
 
-Either
-- Docker
+If using containers:
+- [Docker](https://www.docker.com/) or [Singularity](https://singularity.hpcng.org/) container system
 
-or
+If using native installation:
 - Python 3.6
 - `pip` and `setuptools`
+- FFmpeg
 - Linux or Mac OS (not tested on Windows)
 
 ## Quick install instructions using Docker
-- Clone this repo 
+- Clone this repo
 - Download data set and model
 - Either start docker CPU environment by running: `bash keras-retinanet-env.sh`
 - Or start docker GPU environment by running: `bash keras-retinanet-gpu-env.sh`

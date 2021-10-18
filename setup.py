@@ -79,6 +79,7 @@ setuptools.setup(
             'air-detect=detect:main',
             'air-train=keras_retinanet.keras_retinanet.bin.train:main',
             'air-evaluate=keras_retinanet.keras_retinanet.bin.evaluate:main',
+            'air-infer=keras_retinanet.keras_retinanet.bin.infer:main',
             'air-debug=keras_retinanet.keras_retinanet.bin.debug:main',
             'air-convert-model=keras_retinanet.keras_retinanet.bin.convert_model:main',
         ],

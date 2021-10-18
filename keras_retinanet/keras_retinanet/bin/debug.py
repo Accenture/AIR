@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Copyright 2017-2018 Fizyr (https://fizyr.com)
@@ -151,7 +151,7 @@ def create_generator(args):
 def parse_args(args):
     """ Parse the arguments.
     """
-    parser     = argparse.ArgumentParser(description='Debug script for a RetinaNet network.')
+    parser     = argparse.ArgumentParser(description='Debug script for the AIR detector.')
     subparsers = parser.add_subparsers(help='Arguments for specific dataset types.', dest='dataset_type')
     subparsers.required = True
 

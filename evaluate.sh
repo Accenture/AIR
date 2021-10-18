@@ -34,7 +34,6 @@ python3 keras_retinanet/keras_retinanet/bin/evaluate.py \
     --nms_mode $BBA_MODE \
     --eval_mode $EVAL_MODE \
     --set_name test \
-    --profile \
     --model $PWD/models/$MODEL \
     pascal \
     $DATASET

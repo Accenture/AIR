@@ -38,7 +38,7 @@ import numpy as np
 from collections import deque
 
 # define absolute folder locations
-current_dir = os.path.dirname(os.path.abspath(__file__))
+current_dir = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(current_dir, "data", "videos")
 
 # make utils and keras-retinanet folders available for python
@@ -249,7 +249,7 @@ labels_to_names = labels_to_names_coco if Params.LABEL_MAPPING == "coco" else la
 
 # tracking options (you shouldn't need to touch these)
 KalmanConfig.DEFAULT_HISTORY_SPAN = [3, 5]
-KalmanConfig.DEFAULT_CONFIDENCE_BOUNDS = [0.1, 0.2]
+KalmanConfig.DEFAULT_CONFIDENCE_BOUNDS = [0.1, 0.15]
 KalmanConfig.TRACKING_DELTA_THRES_MULT = 4
 KalmanConfig.INITIAL_PROCESS_NOISE = 200
 KalmanConfig.INITIAL_COVARIANCE = 500

@@ -12,12 +12,11 @@ TRAINING_MODEL="${1:-$TRAINING_MODEL}"
 
 MAX_DETS="1000"
 NMS_THRES="0.25"
-SCORE_THRES="0.25"
+SCORE_THRES="0.05"
 NO_NMS=""
 
 if [[ "$BBA_MODE" == "mob" ]]; then
   MAX_DETS="100000"
-  SCORE_THRES="0.05"
   NO_NMS="--no-nms"
 fi
 
