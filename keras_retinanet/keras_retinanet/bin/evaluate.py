@@ -313,7 +313,7 @@ def main(args=None):
             max_detections=args.max_detections,
             save_path=args.save_path,
             mode=args.eval_mode,
-            tiling=args.image_tiling_dim,
+            tiling_dim=args.image_tiling_dim,
             profile=args.profile,
             wandb_logging=WANDB_ENABLED
         )

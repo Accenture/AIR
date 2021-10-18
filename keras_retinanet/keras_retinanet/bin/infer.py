@@ -188,7 +188,7 @@ def main(args=None):
         nms_mode=args.nms_mode,
         max_detections=args.max_detections,
         save_path=args.output_image_folder,
-        tiling=args.image_tiling_dim,
+        tiling_dim=args.image_tiling_dim,
         profile=args.profile
     )
     print("Inference done! Reporting results...\n")

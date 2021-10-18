@@ -103,11 +103,12 @@ def run_inference_on_image(
     resize_image=None,
     score_threshold=0.01, 
     max_detections=1000,
-    tiling_dim=0,
+    tiling_dim=1,
     top_k=50,
     nms_threshold=0.5,
     nms_mode="argmax",
     mob_iterations=3,
+    max_inflation_factor=100,
     tiling_overlap=TILING_OVERLAP,
     training_overlap=TRAIN_OVERLAP,
 ):
@@ -169,7 +170,8 @@ def run_inference_on_image(
         if nms_mode != "argmax":
             image_boxes, image_scores, image_labels = merge_boxes_per_label(image_boxes, image_scores, image_labels, 
                                                                             max_iterations=mob_iterations, top_k=top_k,
-                                                                            iou_threshold=nms_threshold, merge_mode=nms_mode)
+                                                                            iou_threshold=nms_threshold, merge_mode=nms_mode,
+                                                                            max_inflation_factor=max_inflation_factor)
         elif tiling_dim > 1: # we need to perform another NMS for tiling duplicates
             # not using MOB to ensure reproducibility of earlier results, although it should be the same thing
             # for performance sake, using MOB now
@@ -193,9 +195,10 @@ def get_detections(
     score_threshold=0.01, 
     max_detections=1000,
     save_path=None,
-    tiling=0,
+    tiling_dim=1,
     top_k=50,
     nms_threshold=0.5,
+    max_inflation_factor=100,
     nms_mode="argmax",
     wandb_logging=False,
     profile=False,
@@ -211,7 +214,7 @@ def get_detections(
         score_threshold : The score confidence threshold to use.
         max_detections  : The maximum number of detections to use per image.
         save_path       : The path to save the images with visualized detections to.
-        merge_detection : Whether to perform bbox merging, useful only if model has no NMS
+        tiling_dim      : Divide image into a square tile grid of this dimension
     # Returns
         A list of lists containing the detections for each image in the generator.
     """
@@ -226,17 +229,17 @@ def get_detections(
 
     num_uploaded = 0
     
-    if nms_mode != "argmax" and nms_mode != "none":
-        mob_iterations = 1
-        if nms_mode == "enclose":
-            # make sure we merge everything in this mode
-            mob_iterations = 3
-            nms_threshold = 0
+    mob_iterations = 1
+    if nms_mode == "enclose":
+        # make sure we merge everything in this mode
+        mob_iterations = 3
+        nms_threshold = 0
 
     for i in progressbar.progressbar(range(generator.size()), prefix='Running network: '):
 
         # this is probably computational bottleneck, that can be alleviated with async queues
         # do not include in perf measurement
+        image_name, image_ext = os.path.splitext(os.path.basename(generator.image_path(i)))
         raw_image = generator.load_image(i)
         image = raw_image.copy()
         start = time.perf_counter()
@@ -245,11 +248,12 @@ def get_detections(
         image_boxes, image_scores, image_labels = run_inference_on_image(model, image, generator.resize_image,
             score_threshold=score_threshold, 
             max_detections=max_detections,
-            tiling_dim=tiling,
+            tiling_dim=tiling_dim,
             top_k=top_k,
             nms_threshold=nms_threshold,
             nms_mode=nms_mode,
-            mob_iterations=mob_iterations
+            mob_iterations=mob_iterations,
+            max_inflation_factor=max_inflation_factor
         )
         image_detections = np.concatenate([image_boxes, np.expand_dims(image_scores, axis=1), np.expand_dims(image_labels, axis=1)], axis=1)
         ############ Performance measurement per image end point ############
@@ -274,7 +278,7 @@ def get_detections(
                                          label_to_name=generator.label_to_name, score_threshold=score_threshold,
                                          draw_labels=draw_labels)
 
-            cv2.imwrite(os.path.join(save_path, '{}.png'.format(i)), save_image)
+            cv2.imwrite(os.path.join(save_path, f'{image_name}-idx-{i}{image_ext}'), save_image)
 
         if wandb_logging and not DISABLE_IMG_UPLOADS and i % 14 == 0 and isinstance(generator, PascalVocGenerator) and num_uploaded < MAX_NUM_UPLOAD_IMAGES:
             anns = generator.load_annotations(i)
@@ -319,7 +323,7 @@ def get_detections(
             }
             # log images in RGB
             img = wandb.Image(raw_image[:, :, ::-1], boxes=box_data)
-            wandb.log({f"{generator.set_name}_image_{i+1}": img})
+            wandb.log({f"{generator.set_name}_image_{image_name}_{i+1}": img})
             num_uploaded += 1
 
         # copy detections to all_detections
@@ -379,7 +383,7 @@ def evaluate(
     max_detections=100,
     save_path=None,
     mode="voc2012",
-    tiling=0,
+    tiling_dim=0,
     profile=False,
     wandb_logging=False,
 ):
@@ -414,7 +418,7 @@ def evaluate(
     # gather all detections and annotations
     all_detections, all_inference_times = get_detections(generator, model, 
         score_threshold=score_threshold, max_detections=max_detections, 
-        save_path=save_path, tiling=tiling, nms_threshold=nms_threshold,
+        save_path=save_path, tiling_dim=tiling_dim, nms_threshold=nms_threshold,
         nms_mode=nms_mode, top_k=top_k, wandb_logging=wandb_logging, 
         profile=profile)
         
