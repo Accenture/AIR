@@ -23,8 +23,8 @@ from filterpy.common import Q_discrete_white_noise
 
 
 class KalmanConfig(object):
-    DEFAULT_CONFIDENCE_BOUNDS = [0.4, 0.65]
-    DEFAULT_HISTORY_SPAN = [3, 6]
+    CONFIDENCE_BOUNDS = [0.4, 0.65]
+    HISTORY_SPAN = [3, 6]
     TRACKING_DELTA_THRES_MULT = 5
     TIMESTEP = 1
     INITIAL_COVARIANCE = 100
@@ -42,8 +42,7 @@ class TrackerNotAssignedError(Exception):
 class Detection(object):
     ''' Represent trackable detection and it's meta information '''
 
-    def __init__(self, object_class, confidence_bounds, history_span, center, 
-                 speed=None, width=0, height=0, initial_confidence=float("NaN")):
+    def __init__(self, object_class, center, speed=None, width=0, height=0, initial_confidence=float("NaN")):
         if speed is not None:
             self.initial_measurement = np.array(center + speed)
         else:
@@ -58,8 +57,8 @@ class Detection(object):
         self.initial_confidence = initial_confidence
         self.detection_history = [initial_confidence]
         self.position_history = [center]
-        self.history_min_len, self.history_max_len = history_span
-        self.confidence_bounds = confidence_bounds
+        self.history_min_len, self.history_max_len = KalmanConfig.HISTORY_SPAN
+        self.confidence_bounds = KalmanConfig.CONFIDENCE_BOUNDS
 
     def __update_detection_history(self, detection_kind):
         self.detection_history.insert(0, detection_kind)
@@ -157,8 +156,8 @@ def interpolate_detections(detections, t, direction=None):
 
 
 def visualize_bboxes(background_image, object_classes, bboxes, scores=None, speeds=None, 
-                     confidence_bounds=KalmanConfig.DEFAULT_CONFIDENCE_BOUNDS, 
-                     history_span=KalmanConfig.DEFAULT_HISTORY_SPAN,
+                     confidence_bounds=KalmanConfig.CONFIDENCE_BOUNDS, 
+                     history_span=KalmanConfig.HISTORY_SPAN,
                      valid_color="red", uncertain_color="blue", margin=40, 
                      line_width=8, fontsize=1.5):
     ''' Wrapper function for directly visualizing bounding boxes in format [xmin, ymin, xmax, ymax] '''
@@ -166,7 +165,7 @@ def visualize_bboxes(background_image, object_classes, bboxes, scores=None, spee
     return visualize_detections(background_image, detections, valid_color, uncertain_color, margin, line_width, fontsize)
 
 
-def visualize_detections(background_image, detections, valid_color="red", uncertain_color="blue", margin=20, line_width=8, fontsize=1.5):
+def visualize_detections(background_image, detections, valid_color="red", uncertain_color="blue", margin=20, line_width=8, fontsize=2):
     alpha = 0.7
     y_offset = 10
 
@@ -225,9 +224,7 @@ def visualize_detections(background_image, detections, valid_color="red", uncert
     
     return bg_img
 
-def get_detections_from_bboxes(object_classes, bboxes, scores=None, speeds=None, 
-                               confidence_bounds=KalmanConfig.DEFAULT_CONFIDENCE_BOUNDS, 
-                               history_span=KalmanConfig.DEFAULT_HISTORY_SPAN):
+def get_detections_from_bboxes(object_classes, bboxes, scores=None, speeds=None):
     '''
     Assumes bboxes in format [xmin, ymin, xmax, ymax]
     '''
@@ -242,27 +239,23 @@ def get_detections_from_bboxes(object_classes, bboxes, scores=None, speeds=None,
         center = ((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2)
         width = max(bbox[2] - bbox[0], 0)
         height = max(bbox[3] - bbox[1], 0)
-        detections.append(Detection(object_class, confidence_bounds, history_span, np.array(center), 
+        detections.append(Detection(object_class, np.array(center), 
             speed=speed, width=width, height=height, initial_confidence=score))
     return detections
 
 
-def get_detections_from_centers(object_classes, centers, speeds=None, 
-                                confidence_bounds=KalmanConfig.DEFAULT_CONFIDENCE_BOUNDS, 
-                                history_span=KalmanConfig.DEFAULT_HISTORY_SPAN):
+def get_detections_from_centers(object_classes, centers, speeds=None):
     detections = []
     if speeds is None:
         speeds = [None] * len(centers)
     if isinstance(object_classes, str):
         object_classes = [object_classes] * len(centers)
     for object_class, center, speed in zip(object_classes, centers, speeds):
-        detections.append(Detection(object_class, confidence_bounds, history_span, np.array(center), speed=speed))
+        detections.append(Detection(object_class, np.array(center), speed=speed))
     return detections
 
 
-def get_detections_from_contours(object_classes, contours, speeds=None, 
-                                 confidence_bounds=KalmanConfig.DEFAULT_CONFIDENCE_BOUNDS, 
-                                 history_span=KalmanConfig.DEFAULT_HISTORY_SPAN):
+def get_detections_from_contours(object_classes, contours, speeds=None):
     detections = []
     if speeds is None:
         speeds = [None] * len(contours)
@@ -270,7 +263,7 @@ def get_detections_from_contours(object_classes, contours, speeds=None,
         object_classes = [object_classes] * len(contours)
     for object_class, blob, speed in zip(object_classes, contours, speeds):
         (x, y), r = cv2.minEnclosingCircle(blob)
-        detections.append(Detection(object_class, confidence_bounds, history_span, np.array([x, y]), speed=speed, width=2*r, height=2*r))
+        detections.append(Detection(object_class, np.array([x, y]), speed=speed, width=2*r, height=2*r))
     return detections
 
 

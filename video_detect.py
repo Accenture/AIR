@@ -69,7 +69,7 @@ class Params(object):
     CONFIDENCE_THRES = 0.25
     DETECT_EVERY_NTH_FRAME = 60
     MAX_DETECTIONS_PER_FRAME = 20
-    INTERPOLATE_BETWEEN_DETECTIONS = True
+    USE_TRACKING = True
     SHOW_DETECTION_N_FRAMES = 20
     USE_GPU = False
     PROFILE = False
@@ -126,7 +126,7 @@ def parse_args(parser=None):
     parser.add_argument('-d', '--detect-every-nth-frame', type=int, default=Params.DETECT_EVERY_NTH_FRAME,
                         help="ADVANCED: Performance parameter, decides how often we run retinanet object "
                         "detection, low value increases detection accuracy but is much slower")
-    parser.add_argument('-ni', '--no-interpolation', action="store_false", default=Params.INTERPOLATE_BETWEEN_DETECTIONS,
+    parser.add_argument('-nt', '--no-tracking', action="store_false", default=Params.USE_TRACKING,
                         help="ADVANCED: Don't interpolate between detection frames so the bounding "
                              "box tracking looks smooth, has no effect if -d flag is set to 1. If interpolation is not "
                              "enabled bounding boxes flash on top of video at (maximum) frequency specified by -d flag, "
@@ -174,7 +174,7 @@ def parse_args(parser=None):
         Params.BACKBONE = args.backbone
         Params.CONFIDENCE_THRES = args.confidence_thres 
         Params.DETECT_EVERY_NTH_FRAME = args.detect_every_nth_frame
-        Params.INTERPOLATE_BETWEEN_DETECTIONS = args.no_interpolation
+        Params.USE_TRACKING = args.no_interpolation
         Params.PROCESS_NUM_FRAMES = args.num_frames
         Params.FRAME_OFFSET = args.frame_offset
         Params.USE_GPU = args.gpu
@@ -247,17 +247,16 @@ labels_to_names_pascal = {
 labels_to_names = labels_to_names_coco if Params.LABEL_MAPPING == "coco" else labels_to_names_pascal
 
 
-# tracking options (you shouldn't need to touch these)
-KalmanConfig.DEFAULT_HISTORY_SPAN = [3, 5]
-KalmanConfig.DEFAULT_CONFIDENCE_BOUNDS = [Params.CONFIDENCE_THRES-0.01, Params.CONFIDENCE_THRES+0.05]
-KalmanConfig.TRACKING_DELTA_THRES_MULT = 4
-KalmanConfig.INITIAL_PROCESS_NOISE = 200
-KalmanConfig.INITIAL_COVARIANCE = 500
-KalmanConfig.INITIAL_MEASUREMENT_NOISE = 50
-KalmanConfig.TIMESTEP = 1
-
-
 def main(exporter=None):
+
+    # tracking options
+    KalmanConfig.HISTORY_SPAN = [2, 3]
+    KalmanConfig.CONFIDENCE_BOUNDS = [Params.CONFIDENCE_THRES-0.01, Params.CONFIDENCE_THRES+0.05]
+    KalmanConfig.TRACKING_DELTA_THRES_MULT = 10
+    KalmanConfig.INITIAL_PROCESS_NOISE = 200
+    KalmanConfig.INITIAL_COVARIANCE = 500
+    KalmanConfig.INITIAL_MEASUREMENT_NOISE = 50
+    KalmanConfig.TIMESTEP = 1
 
     # make sure we use absolute path
     if not os.path.isabs(Params.VIDEO_FILE):
@@ -320,6 +319,12 @@ def main(exporter=None):
     real_fps = vid.read_video_fps(Params.VIDEO_FILE)
     fps = int(real_fps)
     in_res = vid.read_video_resolution(Params.VIDEO_FILE)
+
+    if Params.USE_TRACKING:
+        print("\nUsing kalman filter based tracking with settings:")
+        print("=================================================")
+        print("\n".join([f"{k}: {v}" for k, v in vars(KalmanConfig).items() if not k.startswith("__")]))
+        print("")
     
     CHUNK_SIZE = Params.DETECT_EVERY_NTH_FRAME
     disable_video = Params.OUTPUT_TYPE.lower() != valid_output_types[0]
@@ -333,12 +338,12 @@ def main(exporter=None):
             with VideoIterator(Params.VIDEO_FILE, max_slice=CHUNK_SIZE) as vi:
                 print("* * * * *")
                 print(f"Starting object detection from frame #{Params.FRAME_OFFSET}")
-                print(f"Using inference model {Params.MODEL} ({Params.BACKBONE} backbone) for detection")
+                print(f"Using inference model '{Params.MODEL}'' ({Params.BACKBONE} backbone) for detection")
                 print("Output type is", Params.OUTPUT_TYPE.upper())
                 info_str = "all remaining frames..." if Params.PROCESS_NUM_FRAMES is None else f"{Params.PROCESS_NUM_FRAMES} frames in total..."
                 if Params.PROFILE:
                     pr.enable()
-                    print("Execution Profiler is turned ON")
+                    print("Execution profiler is turned ON")
                 print("Processing", info_str)
                 print("* * * * *")
                 vi.seek(Params.FRAME_OFFSET)
@@ -374,7 +379,6 @@ def main(exporter=None):
                             nms_threshold=Params.BBA_IOU_THRES,
                             nms_mode=Params.MERGE_MODE,
                             tiling_overlap=100,
-                            training_overlap=100,
                             mob_iterations=Params.MOB_ITERS
                         )
                         inference_count += 1
@@ -387,10 +391,11 @@ def main(exporter=None):
                         else:
                             valid_detections = False
                             bboxes, scores, labels = ([], [], [])
+
+                        new_detections = kt.get_detections_from_bboxes(labels, bboxes, scores)
+                        detections = []
                             
-                        if Params.INTERPOLATE_BETWEEN_DETECTIONS:
-                            new_detections = kt.get_detections_from_bboxes(
-                                labels, bboxes, scores)
+                        if Params.USE_TRACKING:
                             detections, running_id = kt.match_and_update_detections(
                                 new_detections, detections, running_id)
                             if Params.OUTPUT_TYPE != "video":
@@ -399,23 +404,26 @@ def main(exporter=None):
                                     seen_idx = max(unseen_detections, key=lambda d: d.object_id).object_id
                                     detection_exporter.add_detections_at_frame(unseen_detections, i)
                             else:
-                                frame = kt.visualize_detections(frame, detections, uncertain_color=None)
+                                frame = kt.visualize_detections(frame, detections, uncertain_color="blue")
                             detection_exporter.update_timeseries(detections, i)
                         elif Params.OUTPUT_TYPE != "video":
-                            new_detections = kt.get_detections_from_bboxes(
-                                labels, bboxes, scores)
                             detection_exporter.add_detections_at_frame(new_detections, i)
                             detection_exporter.update_timeseries(new_detections, i)
                             
-                        for label, score in zip(labels, scores):
-                            print(f"[Frame {i}] Detected: '{label}' ({100.*score:.1f} % confidence)")
+                        new_det_ids = []
+                        for new_det in new_detections:
+                            print(f"[Frame {i}] Detected: '{new_det.object_class} {new_det.object_id}' ({100.*new_det.confidence:.1f} % confidence)")
+                            new_det_ids.append(new_det.object_id)
+                        for det in detections:
+                            if det.object_id not in new_det_ids:
+                                print(f"[Frame {i}] Tracking: '{det.object_class} {det.object_id}' ({100.*det.confidence:.1f} % confidence){', passed tracker validation!' if det.is_valid else ''}")
 
                     elif Params.OUTPUT_TYPE == "video":
-                        if Params.INTERPOLATE_BETWEEN_DETECTIONS:
+                        if Params.USE_TRACKING:
                             interp_detections = kt.interpolate_detections(
                                 detections, (i % Params.DETECT_EVERY_NTH_FRAME) / Params.DETECT_EVERY_NTH_FRAME)
                             frame = kt.visualize_detections(
-                                frame, interp_detections, uncertain_color=None)
+                                frame, interp_detections, uncertain_color="blue")
                         elif valid_detections and detection_disp_counter < Params.SHOW_DETECTION_N_FRAMES:
                             frame = kt.visualize_bboxes(
                                 frame, old_labels, old_bboxes, old_scores)
@@ -432,9 +440,9 @@ def main(exporter=None):
     if Params.PROFILE:
         pr.disable()
         ps = pstats.Stats(pr)
-        ps.sort_stats(pstats.SortKey.CUMULATIVE)
-        ps.reverse_order()
-        ps.print_stats()
+        ps.sort_stats("cumulative")
+        # ps.reverse_order()
+        ps.print_stats(50)
 
     if Params.COMPRESS_VIDEO and Params.OUTPUT_TYPE == "video":
         print("Compressing video...")
