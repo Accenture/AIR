@@ -249,7 +249,7 @@ labels_to_names = labels_to_names_coco if Params.LABEL_MAPPING == "coco" else la
 
 # tracking options (you shouldn't need to touch these)
 KalmanConfig.DEFAULT_HISTORY_SPAN = [3, 5]
-KalmanConfig.DEFAULT_CONFIDENCE_BOUNDS = [0.1, 0.15]
+KalmanConfig.DEFAULT_CONFIDENCE_BOUNDS = [Params.CONFIDENCE_THRES-0.01, Params.CONFIDENCE_THRES+0.05]
 KalmanConfig.TRACKING_DELTA_THRES_MULT = 4
 KalmanConfig.INITIAL_PROCESS_NOISE = 200
 KalmanConfig.INITIAL_COVARIANCE = 500
@@ -279,7 +279,7 @@ def main(exporter=None):
 
     # load the inference model with selected backbone
     model_path = os.path.join(current_dir, 'models', Params.MODEL)
-    model = models.load_model(model_path, backbone_name=Params.BACKBONE)
+    model = models.load_model(model_path, backbone_name=Params.BACKBONE, compile=True)
 
     if Params.IMAGE_MIN_SIDE is None or Params.IMAGE_MAX_SIDE is None:
         resize_image = None
@@ -344,6 +344,7 @@ def main(exporter=None):
                 vi.seek(Params.FRAME_OFFSET)
                 fps_timer = time.time()
                 fps_counter = 0
+                i = Params.FRAME_OFFSET
                                 
                 gen = vi if Params.OUTPUT_TYPE == "video" else itertools.repeat(None)
                 fps_counter = 0 if Params.OUTPUT_TYPE == "video" else -Params.DETECT_EVERY_NTH_FRAME
@@ -357,12 +358,12 @@ def main(exporter=None):
                             break
                         fps_counter += Params.DETECT_EVERY_NTH_FRAME - 1
                     else:
-                        i = j
+                        i = j + Params.FRAME_OFFSET
 
                     if Params.PROCESS_NUM_FRAMES is not None and i >= Params.PROCESS_NUM_FRAMES + Params.FRAME_OFFSET:
                         break
 
-                    if i % Params.DETECT_EVERY_NTH_FRAME == 0 or Params.OUTPUT_TYPE != "video":
+                    if j % Params.DETECT_EVERY_NTH_FRAME == 0 or Params.OUTPUT_TYPE != "video":
 
                         image = preprocess_image_caffe_fast(frame)
                         bboxes, scores, labels = run_inference_on_image(model, image, resize_image,
@@ -386,6 +387,7 @@ def main(exporter=None):
                         else:
                             valid_detections = False
                             bboxes, scores, labels = ([], [], [])
+                            
                         if Params.INTERPOLATE_BETWEEN_DETECTIONS:
                             new_detections = kt.get_detections_from_bboxes(
                                 labels, bboxes, scores)
@@ -399,18 +401,14 @@ def main(exporter=None):
                             else:
                                 frame = kt.visualize_detections(frame, detections, uncertain_color=None)
                             detection_exporter.update_timeseries(detections, i)
-                        else:
-                            if Params.OUTPUT_TYPE != "video":
-                                new_detections = kt.get_detections_from_bboxes(
-                                    labels, bboxes, scores)
-                                detection_exporter.add_detections_at_frame(new_detections, i)
-                                detection_exporter.update_timeseries(new_detections, i)
-                            else:
-                                frame = kt.visualize_bboxes(
-                                    frame, labels, bboxes, scores)
-
+                        elif Params.OUTPUT_TYPE != "video":
+                            new_detections = kt.get_detections_from_bboxes(
+                                labels, bboxes, scores)
+                            detection_exporter.add_detections_at_frame(new_detections, i)
+                            detection_exporter.update_timeseries(new_detections, i)
+                            
                         for label, score in zip(labels, scores):
-                            print(f"[Frame {i + Params.FRAME_OFFSET}] Detected: {label} ({score:.3f})")
+                            print(f"[Frame {i}] Detected: '{label}' ({100.*score:.1f} % confidence)")
 
                     elif Params.OUTPUT_TYPE == "video":
                         if Params.INTERPOLATE_BETWEEN_DETECTIONS:
@@ -427,8 +425,7 @@ def main(exporter=None):
                     fps_counter += 1
                     if fps_counter >= 100:
                         processing_fps = fps_counter / (time.time() - fps_timer)
-                        print(f"Processed {i} frames ({(i)/(fps+1e-6):.1f} seconds of video), inferenced {inference_count} frames, overall processing speed: {processing_fps:.1f} fps")
-                        fps_counter = 0
+                        print(f"[Time {time.time() - start_time:.1f} s] Processed {j} frames ({(i)/(fps+1e-6):.1f} seconds of video), inferenced {inference_count} frames @ {processing_fps:.1f} fps")
                         fps_counter = 0
                         fps_timer = time.time()
 
@@ -448,7 +445,7 @@ def main(exporter=None):
     if Params.OUTPUT_TYPE == "video":
         print("Wrote output to:", out_path)
 
-    print(f"Processing time: {time.time() - start_time:.3f} s")
+    print(f"Overall processing time: {time.time() - start_time:.3f} s")
     return detection_exporter if Params.OUTPUT_TYPE == "exporter" else None
 
 
