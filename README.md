@@ -1,3 +1,5 @@
+<img src="keras_retinanet/images/air-logo-large-new.png" alt="AIR-logo" width="250"/><br><br>
+
 # AIR: Aerial Inspection RetinaNet for supporting Land Search and Rescue Missions
 
  A deep learning based object detection solution to automate the aerial drone footage inspection task carried out during SAR operations with drone units.
@@ -24,16 +26,30 @@ If using native installation:
 - Either start docker CPU environment by running: `bash keras-retinanet-env.sh`
 - Or start docker GPU environment by running: `bash keras-retinanet-gpu-env.sh`
 - Inside docker container, build the AIR project by running: `pip3 install .`
-- evaluate the AIR detector by running: `bash evaluate.sh`
-- check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-sar-apd-eval` for the output images
+- In the project root, run the command: `/bin/bash convert-model.sh`
 
 ## Quick native install instructions 
 - Clone this repo 
 - Download data set and model
 - To build the AIR project for CPU, run the command: `/usr/bin/python3 -m pip install air-detector[cpu]`
 - To build the AIR project for GPU, run the command: `/usr/bin/python3 -m pip install air-detector[gpu]`
-- Test the AIR detector by running: `bash evaluate.sh`
+- In the project root, run the command: `/bin/bash convert-model.sh`
+
+
+## Quick demos
+
+### Running inference on HERIDAL test image folder
+- In the project root, run the command: `bash infer.sh`
+- Check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-inference` for the output images
+
+### Evaluating AIR performance on HERIDAL test set (can be slow on CPU)
+- In the project root, run the command: `bash evaluate.sh`
 - Check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-sar-apd-eval` for the output images
+
+### SAR-APD video detection
+- In the project root, run the command: `/bin/bash convert-model.sh`
+- Then start the inferencing by running: `/usr/bin/python3 video_detect.py -c test_config`
+- Check `data/videos/Ylojarvi-gridiajo-two-guys-moving_air_output_compressed.mov` for the output video
 
 ## Wandb support
 - Experiment tracking software by [Weight & Biases](https://wandb.ai/home)
@@ -64,3 +80,7 @@ If using native installation:
 - **data:** input and output data for computer vision algorithms
 - **keras-retinanet:** a fork of the [keras-retinanet](https://github.com/fizyr/keras-retinanet) repository with some AIR modifications
 - **models:** contains trained computer vision models
+
+## General toubleshooting
+- Try setting the `AIR_VERBOSE=1` enviroment variable to see full TF logs
+- If using docker, make sure you're allocating enough memory for the container (like at least 8 GB).
