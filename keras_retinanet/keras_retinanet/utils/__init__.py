@@ -26,6 +26,8 @@ def seed(seed):
     tf.compat.v1.set_random_seed(seed)
 
 def optimize_tf_parallel_processing(num_par_exec_units, config=None, gpu_id=None):
+    if not "AIR_VERBOSE" in os.environ:
+        tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
     config = config if config else tf.compat.v1.ConfigProto()
     config.intra_op_parallelism_threads = num_par_exec_units
     config.inter_op_parallelism_threads = 2

@@ -669,8 +669,9 @@ def main(args=None):
             # config=args.config
         )
 
-    # print model summary
-    print(model.summary())
+    if "AIR_VERBOSE" in os.environ:
+        # print model summary
+        print(model.summary())
 
     # this lets the generator compute backbone layer shapes using the actual backbone model
     if 'vgg' in args.backbone or 'densenet' in args.backbone:
