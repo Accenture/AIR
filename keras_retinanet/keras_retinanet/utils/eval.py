@@ -110,7 +110,6 @@ def run_inference_on_image(
     mob_iterations=3,
     max_inflation_factor=100,
     tiling_overlap=TILING_OVERLAP,
-    training_overlap=TRAIN_OVERLAP,
 ):
     orig_img_shape = image.shape
 
@@ -118,11 +117,6 @@ def run_inference_on_image(
     tile_size = imtools.grid_dim_to_tile_size(image, tiling_dim, overlap=tiling_overlap)
     image_parts, offsets = imtools.create_overlapping_tiled_mosaic(image, tile_size=tile_size,
                                                                     overlap=tiling_overlap, no_fill=True)
-
-    if tiling_dim > 1:
-        image_min_side = min(tile_size) - tiling_overlap + training_overlap # // 2
-        image_max_side = max(tile_size) - tiling_overlap + training_overlap # // 2
-        resize_image = functools.partial(resize_func, min_side=image_min_side, max_side=image_max_side)
     
     all_boxes, all_scores, all_labels = [], [], []
 
