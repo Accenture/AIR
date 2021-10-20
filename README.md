@@ -1,4 +1,4 @@
-<img src="keras_retinanet/images/air-logo-large-new.png" alt="AIR-logo" width="250"/><br><br>
+<img src="keras_retinanet/images/air-logo-large-blue.png" alt="AIR-logo" width="250"/><br><br>
 
 # AIR: Aerial Inspection RetinaNet for supporting Land Search and Rescue Missions
 
