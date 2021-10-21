@@ -10,9 +10,10 @@
 - Supports both video and images
 - Highly accurate deep learning detector custom built for this application
 - Decent processing speed despite the high-resolution images and a very deep neural network used
-- Supports object tracking
-- Implements the novel MOB algorithm
-- Plethora of options for customization (e.g., in bounding box postprocessing)
+- Supports object tracking with kalman filter
+- Implements the novel MOB bounding box postprocessing algorithm
+- Implements the SAR-APD evaluation algorithm for real-world, value-oriented metric reporting in SAR aerial person detection applications
+- Plethora of options for customization (e.g., in bounding box postprocessing, image preprocessing, speed vs accuracy trade-offs, etc.)
 
 ## Results on HERIDAL test set
 
@@ -21,7 +22,7 @@ In the table below are listed the results of the AIR detector and other notable 
 | Method  | Precision  | Recall  | AP  | FPS  |
 |---|---|---|---|---|
 | Mean shift segmentation method [[1](#references)]|  18.7 | 74.7 | - | -
-|  Saliency guided VGG16 [[2](#references)] |   | 34.8 | 88.9 | - | - 
+|  Saliency guided VGG16 [[2](#references)] | 34.8 | 88.9 | - | - 
 |  Faster R-CNN [[3](#references)] |  67.3 | 88.3 | **86.1** | **1** 
 |  Two-stage multimodel CNN [[4](#references)] |  68.9 | **94.7** | - | 0.1 
 |  SSD [[4](#references)] | 4.3 | 94.4 | - | -
@@ -120,12 +121,12 @@ Once everything is setup (installation and asset downloads), you might wanna try
 ## References
 
 [1] TURIC, H., DUJMIC, H., AND PAPIC, V. Two-stage segmentation of aerial
-images for search and rescue. Information Technology and Control 39, 2 (2010).
+images for search and rescue. *Information Technology and Control 39*, 2 (2010).
 
 [2] BOŽIC-ŠTULIC, D., MARUŠIC, Ž., AND GOTOVAC, S. Deep learning approach in
-aerial imagery for supporting land search and rescue missions. International Journal of Computer Vision 127, 9 (2019), 1256–1278.
+aerial imagery for supporting land search and rescue missions. *International Journal of Computer Vision 127*, 9 (2019), 1256–1278.
 
 [3] MARUŠIC, Ž., BOŽIC-ŠTULIC, D., GOTOVAC, S., AND MARUŠIC, T. Region
-proposal approach for human detection on aerial imagery. In 2018 3rd International Conference on Smart and Sustainable Technologies (SpliTech) (2018), IEEE, pp. 1–6.
+proposal approach for human detection on aerial imagery. In *2018 3rd International Conference on Smart and Sustainable Technologies (SpliTech)* (2018), IEEE, pp. 1–6.
 
-[4] VASIC, M. K., AND PAPIC, V. Multimodel deep learning for person detection in aerial images. Electronics 9, 9 (2020), 1459.
+[4] VASIC, M. K., AND PAPIC, V. Multimodel deep learning for person detection in aerial images. *Electronics 9*, 9 (2020), 1459.
