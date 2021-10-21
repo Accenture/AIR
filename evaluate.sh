@@ -30,7 +30,7 @@ python3 keras_retinanet/keras_retinanet/bin/evaluate.py \
     --anchor_scale 0.965 \
     --save_path $PWD/data/predictions/${MODEL/.h5/}-$BBA_MODE-$EVAL_MODE-eval \
     --convert_model true \
-    --image_tiling_dim 4 \
+    --image_tiling_dim 2 \
     --nms_mode $BBA_MODE \
     --eval_mode $EVAL_MODE \
     --set_name test \
