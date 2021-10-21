@@ -165,7 +165,7 @@ def visualize_bboxes(background_image, object_classes, bboxes, scores=None, spee
     return visualize_detections(background_image, detections, valid_color, uncertain_color, margin, line_width, fontsize)
 
 
-def visualize_detections(background_image, detections, valid_color="red", uncertain_color="blue", margin=20, line_width=8, fontsize=2):
+def visualize_detections(background_image, detections, valid_color="red", uncertain_color="blue", margin=20, line_width=8, fontsize=1.5):
     alpha = 0.7
     y_offset = 10
 
@@ -352,6 +352,7 @@ def match_and_update_detections(new_detections, tracked_detections, running_id):
         for detection in new_detections:
             center_measured = detection.position
             dist = np.linalg.norm(center_measured - center_predict)
+            # print(f"{old_detection.object_class} {old_detection.object_id}: {dist} < {threshold_dist} ?")
             if dist <= threshold_dist and \
                     detection.object_class == old_detection.object_class:
                 candid_old_detections.append(detection)

@@ -185,6 +185,16 @@ def parse_args(parser=None):
 
 # display argparse help message before tensorflow starts to initialize
 if __name__ == '__main__':
+    print("""
+      .o.        o8o  ooooooooo.   
+     .888.       `"'  `888   `Y88. 
+    .8"888.     oooo   888   .d88' 
+   .8' `888.    `888   888ooo88P'  
+  .88ooo8888.    888   888`88b.    
+ .8'     `888.   888   888  `88b.  
+o88o     o8888o o888o o888o  o888o 
+==================================
+    """)
     parse_args()
 
 
@@ -250,9 +260,9 @@ labels_to_names = labels_to_names_coco if Params.LABEL_MAPPING == "coco" else la
 def main(exporter=None):
 
     # tracking options
-    KalmanConfig.HISTORY_SPAN = [2, 3]
+    KalmanConfig.HISTORY_SPAN = [3, 5]
     KalmanConfig.CONFIDENCE_BOUNDS = [Params.CONFIDENCE_THRES-0.01, Params.CONFIDENCE_THRES+0.05]
-    KalmanConfig.TRACKING_DELTA_THRES_MULT = 10
+    KalmanConfig.TRACKING_DELTA_THRES_MULT = 2
     KalmanConfig.INITIAL_PROCESS_NOISE = 200
     KalmanConfig.INITIAL_COVARIANCE = 500
     KalmanConfig.INITIAL_MEASUREMENT_NOISE = 50
@@ -333,6 +343,7 @@ def main(exporter=None):
     if detection_exporter is None:
         detection_exporter = DetectionExporter(out_path, real_fps, in_res, Params.OUT_RESOLUTION, 
                                                Params.DETECT_EVERY_NTH_FRAME, placeholder=Params.OUTPUT_TYPE == "video")
+    # 'placeholder=True' keyword argument disables writing but retains context manager for syntactical reasons
     with detection_exporter:
         with VideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", placeholder=disable_video) as writer:
             with VideoIterator(Params.VIDEO_FILE, max_slice=CHUNK_SIZE) as vi:
@@ -345,14 +356,19 @@ def main(exporter=None):
                     pr.enable()
                     print("Execution profiler is turned ON")
                 print("Processing", info_str)
-                print("* * * * *")
-                vi.seek(Params.FRAME_OFFSET)
-                fps_timer = time.time()
-                fps_counter = 0
-                i = Params.FRAME_OFFSET
-                                
+                print("* * * * *\n")
+                
+                fps_timer = time.time()   # time since last FPS measurement
+                fps_counter = 0           # frame count since last FPS measurement
+                i = Params.FRAME_OFFSET   # offsetted frame index
+                detections = []           # list of tracked detections from kalman filter
+
+                vi.seek(Params.FRAME_OFFSET)      
                 gen = vi if Params.OUTPUT_TYPE == "video" else itertools.repeat(None)
-                fps_counter = 0 if Params.OUTPUT_TYPE == "video" else -Params.DETECT_EVERY_NTH_FRAME
+                if Params.OUTPUT_TYPE != "video":
+                    fps_counter =  -Params.DETECT_EVERY_NTH_FRAME
+
+                # main loop - iterate over all (specified) video frames
                 for j, frame in enumerate(gen):
 
                     if Params.OUTPUT_TYPE != "video":
@@ -393,7 +409,6 @@ def main(exporter=None):
                             bboxes, scores, labels = ([], [], [])
 
                         new_detections = kt.get_detections_from_bboxes(labels, bboxes, scores)
-                        detections = []
                             
                         if Params.USE_TRACKING:
                             detections, running_id = kt.match_and_update_detections(
@@ -410,12 +425,11 @@ def main(exporter=None):
                             detection_exporter.add_detections_at_frame(new_detections, i)
                             detection_exporter.update_timeseries(new_detections, i)
                             
-                        new_det_ids = []
                         for new_det in new_detections:
-                            print(f"[Frame {i}] Detected: '{new_det.object_class} {new_det.object_id}' ({100.*new_det.confidence:.1f} % confidence)")
-                            new_det_ids.append(new_det.object_id)
+                            print(f"[Frame {i}] Detected: '{new_det.object_class}' ({100.*new_det.confidence:.1f} % confidence)")
+                            
                         for det in detections:
-                            if det.object_id not in new_det_ids:
+                            if det.object_id < running_id:
                                 print(f"[Frame {i}] Tracking: '{det.object_class} {det.object_id}' ({100.*det.confidence:.1f} % confidence){', passed tracker validation!' if det.is_valid else ''}")
 
                     elif Params.OUTPUT_TYPE == "video":
@@ -433,7 +447,7 @@ def main(exporter=None):
                     fps_counter += 1
                     if fps_counter >= 100:
                         processing_fps = fps_counter / (time.time() - fps_timer)
-                        print(f"[Time {time.time() - start_time:.1f} s] Processed {j} frames ({(i)/(fps+1e-6):.1f} seconds of video), inferenced {inference_count} frames @ {processing_fps:.1f} fps")
+                        print(f"[Time {time.time() - start_time:.1f} s] Processed {j+1} frames ({(j+1)/(fps+1e-6):.1f} seconds of video) @ {processing_fps:.1f} FPS, inferred {inference_count} frames")
                         fps_counter = 0
                         fps_timer = time.time()
 
