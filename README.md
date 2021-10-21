@@ -33,6 +33,7 @@ It turns out AIR achieves state-of-the-art results in precison and inference spe
 ## Hardware Requirements
 - x86 or x64 processor architecture (at least for the Docker installation)
 - NVIDIA® GPU with CUDA® capability 3.5 or higher (recommended)
+- ~8 GB of RAM
 
 ## Software Requirements
 
@@ -49,7 +50,15 @@ If using native installation:
 - Clone this repo
 - Either start docker CPU environment by running: `bash keras-retinanet-env.sh`
 - Or start docker GPU environment by running: `bash keras-retinanet-gpu-env.sh`
-- Inside docker container, build the AIR project by running: `pip3 install .`
+- Inside docker container, build the AIR project by running: `python setup.py build_ext --inplace`
+
+## Quick install instructions using Singularity
+- Clone this repo
+- You might wanna specify your `SINGULARITY_CACHEDIR` env variable prior to installation, if so edit the shell scripts used in the next steps
+- Either start docker CPU environment by running: `bash keras-retinanet-env.sh singularity`
+- Or start docker GPU environment by running: `bash keras-retinanet-gpu-env.sh singularity`
+- Go to mounted directory by typing `cd AIR`
+- Build the AIR project by running: `python setup.py build_ext --inplace`
 
 ## Quick native install instructions 
 - Clone this repo 
@@ -77,7 +86,7 @@ Once everything is setup (installation and asset downloads), you might wanna try
 
 ### SAR-APD video detection
 - In the project root, run the command: `/bin/bash convert-model.sh`
-- Then start the inferencing by running: `/usr/bin/python3 video_detect.py -c test_config`
+- Then start the inferencing by running: `/usr/bin/python3 video_detect.py -c mob_cpu_tracking`
 - Check `data/videos/Ylojarvi-gridiajo-two-guys-moving_air_output_compressed.mov` for the output video
 
 ## Wandb support
@@ -113,6 +122,7 @@ Once everything is setup (installation and asset downloads), you might wanna try
 ## General toubleshooting
 - Try setting the `AIR_VERBOSE=1` enviroment variable to see full TF logs
 - If using docker, make sure you're allocating enough memory for the container (like at least 8 GB)
+- if some script gets simply "killed", it's a clear indicator that you have too little memory allocated
 - Tracker options in `video_detect.py` might need to be recalibrated for each use case for the best performance
 
 ## Acknowledgements
