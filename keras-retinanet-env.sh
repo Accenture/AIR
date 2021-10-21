@@ -14,7 +14,7 @@ elif [[ "$CONTAINER_TYPE" == "singularity" ]]; then
     # IT'S LIKELY NOT A GOOD IDEA TO STORE THEM INSIDE THE MOUNTED VOLUME EITHER
     export SINGULARITY_CACHEDIR=$PWD/../.singularity
     # singularity build keras-retinanet-gpu.simg docker://intrinsick/keras-retinanet-gpu:latest
-    singularity shell -B $PWD:/home --writable docker://intrinsick/keras-retinanet-gpu:latest
+    singularity shell -B $PWD:/home docker://intrinsick/keras-retinanet-gpu:latest
 else
     echo "Invalid container type: ${CONTAINER_TYPE}"
 fi
