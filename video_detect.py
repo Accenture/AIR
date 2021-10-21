@@ -151,7 +151,8 @@ def parse_args(parser=None):
 
     if Params.CONFIG_FILE:
         import importlib
-        config = importlib.import_module("config." + Params.CONFIG_FILE.replace(".py", ""))
+        config = importlib.import_module("config." + Params.CONFIG_FILE.replace(".py",
+                                         "").replace("config", "").replace(os.path.sep, ""))
         for key, value in config.__dict__.items():
             if not key.startswith("__"):
                 setattr(Params, key, value)
@@ -347,9 +348,10 @@ def main(exporter=None):
     with detection_exporter:
         with VideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", placeholder=disable_video) as writer:
             with VideoIterator(Params.VIDEO_FILE, max_slice=CHUNK_SIZE) as vi:
-                print("* * * * *")
-                print(f"Starting object detection from frame #{Params.FRAME_OFFSET}")
+                print("\n* * * * *")
+                print(f"Starting object detection from frame number {Params.FRAME_OFFSET}")
                 print(f"Using inference model '{Params.MODEL}'' ({Params.BACKBONE} backbone) for detection")
+                print(f"Inference interval is {Params.DETECT_EVERY_NTH_FRAME} frames")
                 print("Output type is", Params.OUTPUT_TYPE.upper())
                 info_str = "all remaining frames..." if Params.PROCESS_NUM_FRAMES is None else f"{Params.PROCESS_NUM_FRAMES} frames in total..."
                 if Params.PROFILE:
@@ -447,7 +449,10 @@ def main(exporter=None):
                     fps_counter += 1
                     if fps_counter >= 100:
                         processing_fps = fps_counter / (time.time() - fps_timer)
-                        print(f"[Time {time.time() - start_time:.1f} s] Processed {j+1} frames ({(j+1)/(fps+1e-6):.1f} seconds of video) @ {processing_fps:.1f} FPS, inferred {inference_count} frames")
+                        if Params.OUTPUT_TYPE == "video":
+                            print(f"[Time {time.time() - start_time:.1f} s] Processed {j+1} frames ({(j+1)/(fps+1e-6):.1f} seconds of video) @ {processing_fps:.1f} FPS, inferred {inference_count} frames")
+                        else:
+                            print(f"[Time {time.time() - start_time:.1f} s] Inferred {inference_count} frames @ {processing_fps:.1f} FPS")
                         fps_counter = 0
                         fps_timer = time.time()
 
