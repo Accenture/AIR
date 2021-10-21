@@ -1,4 +1,4 @@
-<img src="keras_retinanet/images/air-logo-large-blue.png" alt="AIR-logo" width="250"/><br><br>
+<img src="keras_retinanet/images/air-logo-large-blue.png" alt="AIR-logo" width="250"/><br>
 
 # AIR: Aerial Inspection RetinaNet for supporting Land Search and Rescue Missions
 
@@ -88,11 +88,11 @@ Once everything is setup (installation and asset downloads), you might wanna try
     - `WANDB_MODE="dryrun"`
         - wandb logging works as normal, but nothing is uploaded to cloud
     - `WANDB_API_KEY=<your_api_key>`
-        - needed to interact with wandb web UI, you might want to put this in your ``~/.bashrc`` or ``~/.zshrc``, it is also automatically included into the Docker envs this way. To do this run this command with your Wandb API key:
+        - needed to interact with wandb web UI, you might want to put this in your ``~/.bashrc`` or ``~/.zshrc`` so that it's automatically included into the Docker envs. On most linux based systems, you can achieve this by running this shell command with your Wandb API key:
             ```bash
             echo "export WANDB_API_KEY=<your_api_key>" >> ".${SHELL/\/bin\//}rc"; exec $SHELL
             ```
-    - `WANDB_DIR=~/wandb` 
+    - `WANDB_DIR=~/wandb`
         - select where local log files are stored
     - `WANDB_PROJECT="air-testing"`
         - select your wandb cloud project
