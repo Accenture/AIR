@@ -9,7 +9,7 @@ PROCESS_NUM_FRAMES = None
 COMPRESS_VIDEO = True
 
 # detection algorithm parameters
-MODEL = "dauntless-sweep-2_resnet152_pascal-mob-inference.h5"
+MODEL = "dauntless-sweep-2_resnet152_pascal-nms-inference.h5"
 BACKBONE = "resnet152"
 DETECT_EVERY_NTH_FRAME = 20
 USE_TRACKING = False
