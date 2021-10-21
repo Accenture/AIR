@@ -16,13 +16,15 @@ limitations under the License.
 
 import os 
 import cv2
+import video.vidtools as vid
 
 class VideoWriter(object):
     ''' OpenCV VideoWriter wrapper '''
 
-    def __init__(self, filepath, resolution, fps, codec="avc1", placeholder=False):
+    def __init__(self, filepath, resolution, fps, codec="avc1", compress=True, placeholder=False):
         self.resolution = resolution
         self.filepath = filepath
+        self.compress = compress
         self.fourcc = cv2.VideoWriter_fourcc(*codec)
         self.fps = fps
         self.writer = None
@@ -47,6 +49,12 @@ class VideoWriter(object):
 
     def close(self):
         self.writer.release()
+        if self.compress:
+            print("Compressing video...")
+            new_output_path = vid.compress_video(self.filepath, create_copy=True)
+            os.remove(self.filepath)
+            self.filepath = new_output_path
+        print("Wrote output to:", self.filepath)
 
     def write(self, frame, bgr_to_rgb=False):
         if not self.placeholder:

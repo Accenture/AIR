@@ -156,12 +156,10 @@ def interpolate_detections(detections, t, direction=None):
 
 
 def visualize_bboxes(background_image, object_classes, bboxes, scores=None, speeds=None, 
-                     confidence_bounds=KalmanConfig.CONFIDENCE_BOUNDS, 
-                     history_span=KalmanConfig.HISTORY_SPAN,
                      valid_color="red", uncertain_color="blue", margin=40, 
                      line_width=8, fontsize=1.5):
     ''' Wrapper function for directly visualizing bounding boxes in format [xmin, ymin, xmax, ymax] '''
-    detections = get_detections_from_bboxes(object_classes, bboxes, scores, speeds, confidence_bounds, history_span)
+    detections = get_detections_from_bboxes(object_classes, bboxes, scores, speeds)
     return visualize_detections(background_image, detections, valid_color, uncertain_color, margin, line_width, fontsize)
 
 

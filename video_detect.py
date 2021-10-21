@@ -15,7 +15,7 @@ limitations under the License.
 """
 
 '''
-RetinaNet based people detector for finding lost people from topdown drone video footage in a forest terrain.
+Aerial Inspection RetinaNet based people detector for finding lost people from topdown drone video footage in a forest terrain.
 Possible output types are: video and json. The output type is inferenced from the given -o (--output) parameter.
 
 Example usage:
@@ -193,7 +193,7 @@ if __name__ == '__main__':
   .88ooo8888.    888   888`88b.    
  .8'     `888.   888   888  `88b.  
 o88o     o8888o o888o o888o  o888o 
-==================================
+================================== 
     """)
     parse_args()
 
@@ -457,15 +457,6 @@ def main(exporter=None):
         ps.sort_stats("cumulative")
         # ps.reverse_order()
         ps.print_stats(50)
-
-    if Params.COMPRESS_VIDEO and Params.OUTPUT_TYPE == "video":
-        print("Compressing video...")
-        new_output_path = vid.compress_video(out_path, create_copy=True)
-        os.remove(out_path)
-        out_path = new_output_path
-
-    if Params.OUTPUT_TYPE == "video":
-        print("Wrote output to:", out_path)
 
     print(f"Overall processing time: {time.time() - start_time:.3f} s")
     return detection_exporter if Params.OUTPUT_TYPE == "exporter" else None
