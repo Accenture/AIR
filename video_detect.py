@@ -346,7 +346,7 @@ def main(exporter=None):
                                                Params.DETECT_EVERY_NTH_FRAME, placeholder=Params.OUTPUT_TYPE == "video")
     # 'placeholder=True' keyword argument disables writing but retains context manager for syntactical reasons
     with detection_exporter:
-        with VideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", placeholder=disable_video) as writer:
+        with VideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_video) as writer:
             with VideoIterator(Params.VIDEO_FILE, max_slice=CHUNK_SIZE) as vi:
                 print("\n* * * * *")
                 print(f"Starting object detection from frame number {Params.FRAME_OFFSET}")
