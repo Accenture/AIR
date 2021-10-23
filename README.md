@@ -2,7 +2,7 @@
 
 # AIR: Aerial Inspection RetinaNet for supporting Land Search and Rescue Missions
 
- AIR is a deep learning based object detection solution to automate the aerial drone footage inspection task carried out during SAR operations with drone units. It provides a fast, convenient and reliable way to augment aerial, high-resolution image inspection for clues about human presence by highligthing relevant image regions with bounding boxes, as done in the image below. 
+ AIR is a deep learning based object detection solution to automate the aerial drone footage inspection task carried out during SAR operations with drone units. It provides a fast, convenient and reliable way to augment aerial, high-resolution image inspection for clues about human presence by highlighting relevant image regions with bounding boxes, as done in the image below. With the assistance of AIR, search and rescue missions with drone units can likely be carried out much faster than before.
 
 <img src="keras_retinanet/images/air-example.png" alt="AIR-example"/><br><br>
 
@@ -33,7 +33,7 @@ It turns out AIR achieves state-of-the-art results in precison and inference spe
 ## Hardware Requirements
 - x86 or x64 processor architecture (at least for the Docker installation)
 - NVIDIA® GPU with CUDA® capability 3.5 or higher (recommended)
-- ~8 GB of RAM
+- ~8 GB of RAM or more
 
 ## Software Requirements
 
@@ -122,11 +122,15 @@ Once everything is setup (installation and asset downloads), you might wanna try
 ## General toubleshooting
 - Try setting the `AIR_VERBOSE=1` enviroment variable to see full TF logs
 - If using docker, make sure you're allocating enough memory for the container (like at least 8 GB)
-- if some script gets simply "killed", it's a clear indicator that you have too little memory allocated
-- Tracker options in `video_detect.py` might need to be recalibrated for each use case for the best performance
+- If some script gets simply "killed", it's a clear indicator that you have too little memory allocated
+- Tracker options in `video_detect.py` might need to be recalibrated for each use case for best performance
 
 ## Acknowledgements
 - Kudos to [Aalto Science-IT project](https://scicomp.aalto.fi/) for providing the compute hardware for training and testing the AIR detector
+- Big thanks to contributors of [keras-retinanet](https://github.com/fizyr/keras-retinanet), and their marvellous programming efforts that have allowed AIR to exists in the first place!
+- Huge credits to the authors of the [HERIDAL](http://ipsar.fesb.unist.hr/HERIDAL%20database.html) dataset [[2](#references)], for which AIR equally well owes its very existence 
+- Lastly, acknowledgements to Ari Nissinen from Finnish Voluntary Rescue Service ([VAPEPA](https://vapepa.fi/en/)) for providing video material used in the development of AIR detector and for testing purposes
+
 
 ## References
 
