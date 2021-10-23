@@ -2,7 +2,7 @@
 
 # AIR: Aerial Inspection RetinaNet for supporting Land Search and Rescue Missions
 
- AIR is a deep learning based object detection solution to automate the aerial drone footage inspection task carried out during SAR operations with drone units. It provides a fast, convenient and reliable way to augment aerial, high-resolution image inspection for clues about human presence by highlighting relevant image regions with bounding boxes, as done in the image below. With the assistance of AIR, search and rescue missions with drone units can likely be carried out much faster than before.
+ AIR is a deep learning based object detection solution to automate the aerial drone footage inspection task carried out during SAR operations with drone units. It provides a fast, convenient and reliable way to augment aerial, high-resolution image inspection for clues about human presence by highlighting relevant image regions with bounding boxes, as done in the image below. With the assistance of AIR, search and rescue missions with drone units can likely be carried out much faster before, and with considerably higher success rate.
 
 <img src="keras_retinanet/images/air-example.png" alt="AIR-example"/><br><br>
 
@@ -29,6 +29,12 @@ In the table below are listed the results of the AIR detector and other notable 
 |  AIR with NMS (ours) | **90.1** | 86.1 | 84.6 | **1**
 
 It turns out AIR achieves state-of-the-art results in precison and inference speed while having comparable recall to the strongest competitors!
+
+## Bounding Box Aggregation options
+
+<img src="keras_retinanet/images/nms-vs-mob.png" alt="NMS-vs-MOB"/><br>
+
+AIR implements both NMS and MOB algorithms for bounding box prediction postprocessing. The image above shows the main difference: MOB (c) merges bounding boxes (a) instead of eliminating them like NMS (b). Thus, choosing MOB can produce visually more pleasing predictions. Moreover, MOB is less sensitive to the choice of condifence score threshold, making it more robust under unseen data. AIR also comes with a custom SAR-APD evaluation scheme that truthfully ranks MOB-equipped object detector performance (as standard object detection metrics, such as VOC2012 AP, do not like MOB).
 
 ## Hardware Requirements
 - x86 or x64 processor architecture (at least for the Docker installation)
@@ -122,14 +128,14 @@ Once everything is setup (installation and asset downloads), you might wanna try
 ## General toubleshooting
 - Try setting the `AIR_VERBOSE=1` enviroment variable to see full TF logs
 - If using docker, make sure you're allocating enough memory for the container (like at least 8 GB)
-- If some script gets simply "killed", it's a clear indicator that you have too little memory allocated
+- If some script simply gets "killed", it's a clear indicator that you have too little memory allocated
 - Tracker options in `video_detect.py` might need to be recalibrated for each use case for best performance
 
 ## Acknowledgements
 - Kudos to [Aalto Science-IT project](https://scicomp.aalto.fi/) for providing the compute hardware for training and testing the AIR detector
 - Big thanks to contributors of [keras-retinanet](https://github.com/fizyr/keras-retinanet), and their marvellous programming efforts that have allowed AIR to exists in the first place!
-- Huge credits to the authors of the [HERIDAL](http://ipsar.fesb.unist.hr/HERIDAL%20database.html) dataset [[2](#references)], for which AIR equally well owes its very existence 
-- Lastly, acknowledgements to Ari Nissinen from Finnish Voluntary Rescue Service ([VAPEPA](https://vapepa.fi/en/)) for providing video material used in the development of AIR detector and for testing purposes
+- Huge credit to the authors of the [HERIDAL](http://ipsar.fesb.unist.hr/HERIDAL%20database.html) dataset [[2](#references)], for which AIR equally well owes its very existence 
+- Also thanks to Ari Nissinen from Finnish Voluntary Rescue Service ([VAPEPA](https://vapepa.fi/en/)) for providing video material used in development and testing of the AIR detector
 
 
 ## References
