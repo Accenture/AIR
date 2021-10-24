@@ -80,7 +80,7 @@ class VideoWriter(object):
 class AsyncVideoWriter(VideoWriter):
     
     def __init__(self, output_path, resolution, fps, codec="avc1", compress=True, placeholder=False, 
-                 bgr_to_rgb=False, max_size=1000):
+                 bgr_to_rgb=False, max_size=10):
         super().__init__(output_path, resolution, fps, codec, compress, placeholder, bgr_to_rgb)
         self._lock = RLock()
         self._buffer = Queue(maxsize = max_size)

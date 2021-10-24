@@ -341,7 +341,10 @@ def main(exporter=None):
             out_path = ""
     else:
         if not os.path.exists(Params.OUTPUT_PATH):
-            os.makedirs(os.path.dirname(Params.OUTPUT_PATH), exist_ok=True)
+            if Params.OUTPUT_TYPE == "images":
+                os.makedirs(Params.OUTPUT_PATH, exist_ok=True)
+            else:
+                os.makedirs(os.path.dirname(Params.OUTPUT_PATH), exist_ok=True)
         out_path = Params.OUTPUT_PATH
 
     real_fps = vid.read_video_fps(Params.VIDEO_FILE)
@@ -391,7 +394,7 @@ def main(exporter=None):
                 print(f"Starting object detection from frame number {Params.FRAME_OFFSET}")
                 print(f"Using inference model '{Params.MODEL}' ({Params.BACKBONE} backbone) for detection")
                 print(f"Inference interval is {Params.DETECT_EVERY_NTH_FRAME} frames")
-                print("Output type is", ORIG_OUTPUT_TYPE.upper())
+                print("Output type is", Params.OUTPUT_TYPE.upper())
                 info_str = "all remaining frames..." if Params.PROCESS_NUM_FRAMES is None else f"{Params.PROCESS_NUM_FRAMES} frames in total..."
                 if Params.PROFILE:
                     pr.enable()

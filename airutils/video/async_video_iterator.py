@@ -43,7 +43,7 @@ class AsyncVideoIterator(VideoIterator):
     ```
     '''
 
-    def __init__(self, src, start_idx=0, end_idx=-1, skip_rate=1, max_size=100, timeout=None, backend = cv2.CAP_ANY):
+    def __init__(self, src, start_idx=0, end_idx=-1, skip_rate=1, max_size=10, timeout=None, backend = cv2.CAP_ANY):
         super().__init__(src, max_size, backend)
         self.start_idx = max(0, start_idx)
         self.end_idx = end_idx
