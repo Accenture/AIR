@@ -371,7 +371,7 @@ def main(exporter=None):
                                     end_idx=END_IDX, skip_rate=SKIP_RATE) as vi:
                 print("\n* * * * *")
                 print(f"Starting object detection from frame number {Params.FRAME_OFFSET}")
-                print(f"Using inference model '{Params.MODEL}'' ({Params.BACKBONE} backbone) for detection")
+                print(f"Using inference model '{Params.MODEL}' ({Params.BACKBONE} backbone) for detection")
                 print(f"Inference interval is {Params.DETECT_EVERY_NTH_FRAME} frames")
                 print("Output type is", Params.OUTPUT_TYPE.upper())
                 info_str = "all remaining frames..." if Params.PROCESS_NUM_FRAMES is None else f"{Params.PROCESS_NUM_FRAMES} frames in total..."
