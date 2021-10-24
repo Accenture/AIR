@@ -60,20 +60,20 @@ class AsyncVideoIterator(VideoIterator):
         
     def __enter__(self):
         super().init()
-        if not isinstance(self.end_idx, int) or self.end_idx < 0:
-            self.end_idx = super().__len__() - 1
-        self.start_stream()
+        self.init()
         return self
 
 
     def __exit__(self, type, value, traceback):
-        self.stop_stream()
+        self.close()
         super().close()
 
     
-    def start_stream(self):
+    def init(self):
+        if not isinstance(self.end_idx, int) or self.end_idx < 0:
+            self.end_idx = super().__len__() - 1
         if self._running:
-            self.stop_stream()
+            self.close()
         with self._buffer.mutex:
             self._buffer.queue.clear()
         with self._lock:
@@ -84,7 +84,7 @@ class AsyncVideoIterator(VideoIterator):
             self._producer.start()
 
     
-    def stop_stream(self):
+    def close(self):
         with self._lock:
             self._running = False
         self._producer.join()

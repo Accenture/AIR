@@ -78,6 +78,7 @@ class VideoWriter(object):
 
 
 class AsyncVideoWriter(VideoWriter):
+    """ Asynchronous version of the VideoWriter module """
     
     def __init__(self, output_path, resolution, fps, codec="avc1", compress=True, placeholder=False, 
                  bgr_to_rgb=False, max_size=10):
@@ -90,17 +91,17 @@ class AsyncVideoWriter(VideoWriter):
     def __enter__(self):
         if not self.placeholder:
             super().init()
-            self.start_stream()
+            self.init()
             return self
 
     def __exit__(self, type, value, traceback):
         if not self.placeholder:
-            self.stop_stream()
+            self.close()
             super().close()
 
-    def start_stream(self):
+    def init(self):
         if self._running:
-            self.stop_stream()
+            self.close()
         with self._buffer.mutex:
             self._buffer.queue.clear()
         with self._lock:
@@ -109,7 +110,7 @@ class AsyncVideoWriter(VideoWriter):
             self._writer.daemon = False
             self._writer.start()
 
-    def stop_stream(self):
+    def close(self):
         with self._lock:
             self._running = False
         self._writer.join()
