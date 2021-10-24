@@ -37,7 +37,7 @@ It turns out AIR achieves state-of-the-art results in precison and inference spe
 AIR implements both NMS and MOB algorithms for bounding box prediction postprocessing. The image above shows the main difference: MOB (c) merges bounding boxes (a) instead of eliminating them like NMS (b). Thus, choosing MOB can produce visually more pleasing predictions. Moreover, MOB is less sensitive to the choice of condifence score threshold, making it more robust under unseen data. AIR also comes with a custom SAR-APD evaluation scheme that truthfully ranks MOB-equipped object detector performance (as standard object detection metrics, such as VOC2012 AP, do not like MOB).
 
 ## Hardware Requirements
-- x86 or x64 processor architecture (at least for the Docker installation)
+- x86 or x64 processor architecture (at least for the Docker installation, and if trying to install natively on ARM64 architecture, expect a lot of compiling python packages from source)
 - NVIDIA® GPU with CUDA® capability 3.5 or higher (recommended)
 - ~8 GB of RAM or more
 
@@ -49,7 +49,7 @@ If using containers:
 If using native installation:
 - Python 3.6
 - `pip` and `setuptools`
-- FFmpeg
+- FFmpeg (recommended)
 - Linux or Mac OS (not tested on Windows)
 
 ## Quick install instructions using Docker

@@ -141,10 +141,12 @@ def parse_args(parser=None):
                         help="ADVANCED: Enable execution profiling to find bottlenecks in the program performance")
     parser.add_argument('--merge-mode', 
                         help=f'ADVANCED: How to merge two overlapping detections in BBA (defaults to "{Params.MERGE_MODE}").', default=Params.MERGE_MODE)
-    parser.add_argument('--top_k',            
+    parser.add_argument('--top-k',            
                         help='ADVANCED: Number of top scoring bboxes to keep in merge cluster when nms_mode is not "argmax"', type=int, default=Params.TOP_K)
-    parser.add_argument('--bba_iou_threshold',    
+    parser.add_argument('--bba-iou-threshold',    
                         help=f'ADVANCED: BBA IoU threshold for two overlapping detections (defaults to {Params.BBA_IOU_THRES}).', default=Params.BBA_IOU_THRES, type=float)
+    parser.add_argument('--mob-iters',    
+                        help=f'ADVANCED: MOB algorithm iteration count (defaults to {Params.MOB_ITERS}).', default=Params.MOB_ITERS, type=int)
 
     args = parser.parse_args()
     Params.CONFIG_FILE = args.config_file
@@ -180,6 +182,11 @@ def parse_args(parser=None):
         Params.FRAME_OFFSET = args.frame_offset
         Params.USE_GPU = args.gpu
         Params.PROFILE = args.profile
+
+        Params.MERGE_MODE = args.merge_mode
+        Params.MOB_ITERS = args.mob_iters
+        Params.BBA_IOU_THRES = args.bba_iou_threshold
+        Params.TOP_K = args.top_k
     
     return args
 
@@ -209,6 +216,7 @@ from keras_retinanet.keras_retinanet.utils import optimize_tf_parallel_processin
 
 from dataset.detection_exporter import DetectionExporter
 from video.video_iterator import VideoIterator
+from video.async_video_iterator import AsyncVideoIterator
 from video.videowriter import VideoWriter
 from kalman_tracker import KalmanConfig
 import video.vidtools as vid
@@ -347,7 +355,10 @@ def main(exporter=None):
     # 'placeholder=True' keyword argument disables writing but retains context manager for syntactical reasons
     with detection_exporter:
         with VideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_video) as writer:
-            with VideoIterator(Params.VIDEO_FILE, max_slice=CHUNK_SIZE) as vi:
+            # with VideoIterator(Params.VIDEO_FILE, max_slice=CHUNK_SIZE) as vi:
+            with AsyncVideoIterator(Params.VIDEO_FILE, start_idx=Params.FRAME_OFFSET, 
+                                    end_idx=Params.PROCESS_NUM_FRAMES + Params.FRAME_OFFSET, 
+                                    skip_rate=Params.DETECT_EVERY_NTH_FRAME) as vi:
                 print("\n* * * * *")
                 print(f"Starting object detection from frame number {Params.FRAME_OFFSET}")
                 print(f"Using inference model '{Params.MODEL}'' ({Params.BACKBONE} backbone) for detection")
@@ -365,7 +376,7 @@ def main(exporter=None):
                 i = Params.FRAME_OFFSET   # offsetted frame index
                 detections = []           # list of tracked detections from kalman filter
 
-                vi.seek(Params.FRAME_OFFSET)      
+                # vi.seek(Params.FRAME_OFFSET)      
                 gen = vi if Params.OUTPUT_TYPE == "video" else itertools.repeat(None)
                 if Params.OUTPUT_TYPE != "video":
                     fps_counter =  -Params.DETECT_EVERY_NTH_FRAME
