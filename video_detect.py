@@ -89,7 +89,7 @@ def resolve_output_type(output):
         return valid_output_types[1] # json
     elif re.search(r"\.[a-zA-Z0-9]{3,4}$", output):
         return valid_output_types[0] # video
-    elif os.path.isdir(output) or "." not in os.path.basename(output):
+    elif os.path.isdir(output) or "." not in os.path.basename(output) or output.endswith(os.path.sep):
         return valid_output_types[3] # images
     return valid_output_types[2]     # exporter object
 
@@ -388,7 +388,7 @@ def main(exporter=None):
     disable_writer = Params.OUTPUT_TYPE in {"json", "exporter"}
 
     with detection_exporter:
-        with AsyncVideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_writer) as disable_writer:
+        with AsyncVideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_writer) as writer:
             with video_iterator as vi:
                 print("\n* * * * *")
                 print(f"Starting object detection from frame number {Params.FRAME_OFFSET}")
