@@ -97,7 +97,7 @@ class AsyncVideoWriter(VideoWriter):
 class VideoWriter(object):
     ''' OpenCV VideoWriter wrapper '''
 
-    def __init__(self, output_path, resolution, fps, codec="avc1", compress=True, placeholder=False, bgr_to_rgb=False)
+    def __init__(self, output_path, resolution, fps, codec="avc1", compress=True, placeholder=False, bgr_to_rgb=False):
         self.write_mode = "images" if os.path.isdir(output_path) else "video"
         self.resolution = resolution
         self.output_path = output_path
