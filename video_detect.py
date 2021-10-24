@@ -385,7 +385,7 @@ def main(exporter=None):
     disable_writer = Params.OUTPUT_TYPE in {"json", "exporter"}
 
     with detection_exporter:
-        with AsyncVideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_video) as disable_writer:
+        with AsyncVideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_writer) as disable_writer:
             with video_iterator as vi:
                 print("\n* * * * *")
                 print(f"Starting object detection from frame number {Params.FRAME_OFFSET}")
