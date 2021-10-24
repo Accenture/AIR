@@ -14,9 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os 
+import os, sys
+current_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, os.path.join(current_dir))
 import cv2
-import video.vidtools as vid
+from threading import Thread, RLock
+from queue import Queue, Full, Empty
+
+import vidtools as vid
 
 
 class VideoWriter(object):
