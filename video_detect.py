@@ -366,13 +366,8 @@ def main(exporter=None):
     else:
         END_IDX = None
 
-    # ORIG_OUTPUT_TYPE = Params.OUTPUT_TYPE
-    # if Params.OUTPUT_TYPE == "images":
-    #     Params.OUTPUT_TYPE = "video" # there's no real difference between the two modes after this point
-
     SKIP_RATE = 1 if Params.OUTPUT_TYPE == "video" else Params.DETECT_EVERY_NTH_FRAME
 
-    
     if Params.OUT_RESOLUTION is None:
         Params.OUT_RESOLUTION = in_res
     if detection_exporter is None:
@@ -381,7 +376,7 @@ def main(exporter=None):
     # 'placeholder=True' keyword argument disables writing but retains context manager for syntactical reasons
 
     if Params.OUTPUT_TYPE == "video":
-        video_iterator = VideoIterator(Params.VIDEO_FILE)
+        video_iterator = VideoIterator(Params.VIDEO_FILE) # for some reason threaded iterator is significantly slower for video output
     else:
         video_iterator = AsyncVideoIterator(Params.VIDEO_FILE, start_idx=Params.FRAME_OFFSET, end_idx=END_IDX, skip_rate=SKIP_RATE)
     
@@ -451,7 +446,7 @@ def main(exporter=None):
                         if Params.USE_TRACKING:
                             detections, running_id = kt.match_and_update_detections(
                                 new_detections, detections, running_id)
-                            if Params.OUTPUT_TYPE != "video":
+                            if Params.OUTPUT_TYPE in {"json", "exporter"}:
                                 unseen_detections = [d for d in detections if d.object_id > seen_idx and d.is_valid]
                                 if unseen_detections:
                                     seen_idx = max(unseen_detections, key=lambda d: d.object_id).object_id
@@ -459,9 +454,11 @@ def main(exporter=None):
                             else:
                                 frame = kt.visualize_detections(frame, detections, uncertain_color="blue")
                             detection_exporter.update_timeseries(detections, i)
-                        elif Params.OUTPUT_TYPE != "video":
+                        elif Params.OUTPUT_TYPE in {"json", "exporter"}:
                             detection_exporter.add_detections_at_frame(new_detections, i)
                             detection_exporter.update_timeseries(new_detections, i)
+                        elif Params.OUTPUT_TYPE == "images":
+                            frame = kt.visualize_detections(frame, new_detections, uncertain_color="blue")
                             
                         for new_det in new_detections:
                             print(f"[Frame {i}] Detected: '{new_det.object_class}' ({100.*new_det.confidence:.1f} % confidence)")
@@ -470,7 +467,7 @@ def main(exporter=None):
                             if det.object_id < running_id:
                                 print(f"[Frame {i}] Tracking: '{det.object_class} {det.object_id}' ({100.*det.confidence:.1f} % confidence){', passed tracker validation!' if det.is_valid else ''}")
 
-                    elif Params.OUTPUT_TYPE in {"video", "images"}:
+                    elif Params.OUTPUT_TYPE == "video":
                         if Params.USE_TRACKING:
                             interp_detections = kt.interpolate_detections(
                                 detections, (i % Params.DETECT_EVERY_NTH_FRAME) / Params.DETECT_EVERY_NTH_FRAME)
@@ -483,7 +480,7 @@ def main(exporter=None):
 
                     if Params.OUTPUT_TYPE == "video" or valid_detections:
                         writer.write(frame)
-                        
+
                     fps_counter += 1
                     if fps_counter >= 100:
                         processing_fps = fps_counter / (time.time() - fps_timer)
