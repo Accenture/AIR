@@ -54,15 +54,15 @@ If using native installation:
 
 ## Quick install instructions using Docker
 - Clone this repo
-- Either start docker CPU environment by running: `bash keras-retinanet-env.sh`
-- Or start docker GPU environment by running: `bash keras-retinanet-gpu-env.sh`
+- Either start docker CPU environment by running: `bash start-air-cpu-env.sh docker`
+- Or start docker GPU environment by running: `bash start-air-gpu-env.sh docker`
 - Inside docker container, build the AIR project by running: `python setup.py build_ext --inplace`
 
 ## Quick install instructions using Singularity
 - Clone this repo
 - You might wanna specify your `SINGULARITY_CACHEDIR` env variable prior to installation, if so edit the shell scripts used in the next steps
-- Either start docker CPU environment by running: `bash keras-retinanet-env.sh singularity`
-- Or start docker GPU environment by running: `bash keras-retinanet-gpu-env.sh singularity`
+- Either start docker CPU environment by running: `bash start-air-cpu-env.sh singularity`
+- Or start docker GPU environment by running: `bash start-air-gpu-env.sh singularity`
 - Go to mounted directory by typing `cd AIR`
 - Build the AIR project by running: `python setup.py build_ext --inplace`
 
@@ -130,6 +130,9 @@ Once everything is setup (installation and asset downloads), you might wanna try
 - If using docker, make sure you're allocating enough memory for the container (like at least 8 GB)
 - If some script simply gets "killed", it's a clear indicator that you have too little memory allocated
 - Tracker options in `video_detect.py` might need to be recalibrated for each use case for best performance
+- If you edit any of the bash scripts in the root folder (e.g., `evaluate.sh`), make sure there are no whitespace after linebreaks '`\`', bash can be picky about these things... Also avoid commenting out any command line parameters in those scripts, just delete the whole line outright
+- The actual python scripts corresponding to the bash scripts are in `keras_retinanet/keras_retinanet/bin` folder and they can be called directly (or you can try the installed console scripts (e.g., `air-evaluate`) if you ran `pip install .`) with approproate parameters (examples can be found in those bash scripts)
+- Using command line parameters `-h` or `--help` usually *helps* (pun intended)
 
 ## Acknowledgements
 - Kudos to [Aalto Science-IT project](https://scicomp.aalto.fi/) for providing the compute hardware for training and testing the AIR detector
