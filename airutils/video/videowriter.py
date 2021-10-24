@@ -89,14 +89,14 @@ class AsyncVideoWriter(VideoWriter):
 
 
     def __enter__(self):
-        if not placeholder:
+        if not self.placeholder:
             super().init()
             self.start_stream()
             return self
 
 
     def __exit__(self, type, value, traceback):
-        if not placeholder:
+        if not self.placeholder:
             self.stop_stream()
             super().close()
 
@@ -121,7 +121,7 @@ class AsyncVideoWriter(VideoWriter):
     
 
     def write(self, frame):
-        if not placeholder:
+        if not self.placeholder:
             put_success = False
             while not put_success:
                 if not self._running:
