@@ -467,7 +467,7 @@ def main(exporter=None):
                                 frame, old_labels, old_bboxes, old_scores)
                             detection_disp_counter += 1
 
-                    writer.write(frame, bgr_to_rgb=False)
+                    writer.write(frame)
                     fps_counter += 1
                     if fps_counter >= 100:
                         processing_fps = fps_counter / (time.time() - fps_timer)
