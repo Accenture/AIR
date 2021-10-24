@@ -84,7 +84,7 @@ class Params(object):
 
 def resolve_output_type(output):
     if output is None:
-        return Params.OUTPUT_TYPE
+        return Params.OUTPUT_TYPE.lower()
     elif output.endswith(".json"):
         return valid_output_types[1] # json
     elif re.search(r"\.[a-zA-Z0-9]{3,4}$", output):
@@ -169,7 +169,6 @@ def parse_args(parser=None):
             Params.OUT_RESOLUTION = tuple(args.resolution)
         Params.VIDEO_FILE = args.input
         Params.OUTPUT_PATH = args.output
-        Params.OUTPUT_TYPE = resolve_output_type(args.output)
         Params.COMPRESS_VIDEO = args.no_compress
         Params.IMAGE_TILING_DIM = args.image_tiling_dim
         Params.IMAGE_MIN_SIDE = args.image_min_side
@@ -189,9 +188,8 @@ def parse_args(parser=None):
         Params.MOB_ITERS = args.mob_iters
         Params.BBA_IOU_THRES = args.bba_iou_threshold
         Params.TOP_K = args.top_k
-    
-    Params.OUTPUT_TYPE = Params.OUTPUT_TYPE.lower()
-    
+
+    Params.OUTPUT_TYPE = resolve_output_type(Params.OUTPUT_PATH)
     return args
 
 
