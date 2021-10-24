@@ -346,6 +346,16 @@ def main(exporter=None):
         print("")
     
     CHUNK_SIZE = Params.DETECT_EVERY_NTH_FRAME
+    if Params.PROCESS_NUM_FRAMES is not None:
+        if Params.FRAME_OFFSET is not None:
+            END_IDX = Params.PROCESS_NUM_FRAMES + Params.FRAME_OFFSET
+        else:
+            END_IDX = Params.PROCESS_NUM_FRAMES
+    else:
+        END_IDX = None
+
+    SKIP_RATE = 1 if Params.OUTPUT_TYPE == "video" else Params.DETECT_EVERY_NTH_FRAME
+
     disable_video = Params.OUTPUT_TYPE.lower() != valid_output_types[0]
     if Params.OUT_RESOLUTION is None:
         Params.OUT_RESOLUTION = in_res
@@ -353,12 +363,12 @@ def main(exporter=None):
         detection_exporter = DetectionExporter(out_path, real_fps, in_res, Params.OUT_RESOLUTION, 
                                                Params.DETECT_EVERY_NTH_FRAME, placeholder=Params.OUTPUT_TYPE == "video")
     # 'placeholder=True' keyword argument disables writing but retains context manager for syntactical reasons
+    
     with detection_exporter:
         with VideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_video) as writer:
             # with VideoIterator(Params.VIDEO_FILE, max_slice=CHUNK_SIZE) as vi:
             with AsyncVideoIterator(Params.VIDEO_FILE, start_idx=Params.FRAME_OFFSET, 
-                                    end_idx=Params.PROCESS_NUM_FRAMES + Params.FRAME_OFFSET, 
-                                    skip_rate=Params.DETECT_EVERY_NTH_FRAME) as vi:
+                                    end_idx=END_IDX, skip_rate=SKIP_RATE) as vi:
                 print("\n* * * * *")
                 print(f"Starting object detection from frame number {Params.FRAME_OFFSET}")
                 print(f"Using inference model '{Params.MODEL}'' ({Params.BACKBONE} backbone) for detection")
@@ -377,19 +387,19 @@ def main(exporter=None):
                 detections = []           # list of tracked detections from kalman filter
 
                 # vi.seek(Params.FRAME_OFFSET)      
-                gen = vi if Params.OUTPUT_TYPE == "video" else itertools.repeat(None)
+                # gen = vi if Params.OUTPUT_TYPE == "video" else itertools.repeat(None)
                 if Params.OUTPUT_TYPE != "video":
                     fps_counter =  -Params.DETECT_EVERY_NTH_FRAME
 
                 # main loop - iterate over all (specified) video frames
-                for j, frame in enumerate(gen):
+                for j, frame in enumerate(vi):
 
                     if Params.OUTPUT_TYPE != "video":
                         i = Params.FRAME_OFFSET + j * Params.DETECT_EVERY_NTH_FRAME
-                        try:
-                            frame = vi[i]
-                        except IndexError:
-                            break
+                        # try:
+                        #     frame = vi[i]
+                        # except IndexError:
+                        #     break
                         fps_counter += Params.DETECT_EVERY_NTH_FRAME - 1
                     else:
                         i = j + Params.FRAME_OFFSET

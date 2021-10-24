@@ -61,7 +61,7 @@ class AsyncVideoIterator(VideoIterator):
         
     def __enter__(self):
         super().init()
-        if self.end_idx == -1:
+        if not isinstance(self.end_idx, int) or self.end_idx < 0:
             self.end_idx = super().__len__() - 1
         self.start_stream()
         return self
