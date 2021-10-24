@@ -1,5 +1,5 @@
 # general I/O parameters
-OUTPUT_TYPE = None
+OUTPUT_TYPE = "images"
 LABEL_MAPPING = "pascal"
 VIDEO_FILE = "data/videos/Ylojarvi-gridiajo-two-guys-moving.mov"
 OUT_RESOLUTION = None # (3840, 2024)
@@ -15,7 +15,7 @@ DETECT_EVERY_NTH_FRAME = 60
 USE_TRACKING = True
 SHOW_DETECTION_N_FRAMES = 30
 USE_GPU = False
-PROFILE = True
+PROFILE = False
 IMAGE_TILING_DIM = 2
 IMAGE_MIN_SIDE = 1525
 IMAGE_MAX_SIDE = 2025

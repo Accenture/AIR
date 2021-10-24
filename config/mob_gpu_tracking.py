@@ -11,11 +11,11 @@ COMPRESS_VIDEO = True
 # detection algorithm parameters
 MODEL = "dauntless-sweep-2_resnet152_pascal-mob-inference.h5"
 BACKBONE = "resnet152"
-DETECT_EVERY_NTH_FRAME = 20
+DETECT_EVERY_NTH_FRAME = 30
 USE_TRACKING = True
 SHOW_DETECTION_N_FRAMES = 30
 USE_GPU = True
-PROFILE = True
+PROFILE = False
 IMAGE_TILING_DIM = 2
 IMAGE_MIN_SIDE = 1525
 IMAGE_MAX_SIDE = 2025
