@@ -87,8 +87,10 @@ def resolve_output_type(output):
         return Params.OUTPUT_TYPE
     elif output.endswith(".json"):
         return valid_output_types[1] # json
-    elif re.search(r"\.[a-zA-Z0-9]{3,4}$", output) or os.path.isdir(output):
-        return valid_output_types[0] # video / images
+    elif re.search(r"\.[a-zA-Z0-9]{3,4}$", output):
+        return valid_output_types[0] # video
+    elif os.path.isdir(output) or "." not in os.path.basename(output):
+        return valid_output_types[3] # images
     return valid_output_types[2]     # exporter object
 
 
@@ -187,6 +189,8 @@ def parse_args(parser=None):
         Params.MOB_ITERS = args.mob_iters
         Params.BBA_IOU_THRES = args.bba_iou_threshold
         Params.TOP_K = args.top_k
+    
+    Params.OUTPUT_TYPE = Params.OUTPUT_TYPE.lower()
     
     return args
 
@@ -331,6 +335,8 @@ def main(exporter=None):
         elif Params.OUTPUT_TYPE == "images":
             out_path = os.path.join(
                 dir_name, vid_file_name + "_air_output")
+            if not os.path.exists(out_path):
+                os.makedirs(out_path, exist_ok=True)
         else:
             out_path = ""
     else:
@@ -357,13 +363,13 @@ def main(exporter=None):
     else:
         END_IDX = None
 
-    ORIG_OUTPUT_TYPE = Params.OUTPUT_TYPE
-    if Params.OUTPUT_TYPE == "images":
-        Params.OUTPUT_TYPE = "video" # there's no real difference between the two modes after this point
+    # ORIG_OUTPUT_TYPE = Params.OUTPUT_TYPE
+    # if Params.OUTPUT_TYPE == "images":
+    #     Params.OUTPUT_TYPE = "video" # there's no real difference between the two modes after this point
 
     SKIP_RATE = 1 if Params.OUTPUT_TYPE == "video" else Params.DETECT_EVERY_NTH_FRAME
 
-    disable_video = Params.OUTPUT_TYPE.lower() != valid_output_types[0]
+    
     if Params.OUT_RESOLUTION is None:
         Params.OUT_RESOLUTION = in_res
     if detection_exporter is None:
@@ -376,8 +382,10 @@ def main(exporter=None):
     else:
         video_iterator = AsyncVideoIterator(Params.VIDEO_FILE, start_idx=Params.FRAME_OFFSET, end_idx=END_IDX, skip_rate=SKIP_RATE)
     
+    disable_writer = Params.OUTPUT_TYPE in {"json", "exporter"}
+
     with detection_exporter:
-        with AsyncVideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_video) as writer:
+        with AsyncVideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_video) as disable_writer:
             with video_iterator as vi:
                 print("\n* * * * *")
                 print(f"Starting object detection from frame number {Params.FRAME_OFFSET}")
