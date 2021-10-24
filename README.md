@@ -34,7 +34,13 @@ It turns out AIR achieves state-of-the-art results in precison and inference spe
 
 <img src="keras_retinanet/images/nms-vs-mob.png" alt="NMS-vs-MOB"/><br>
 
-AIR implements both NMS and MOB algorithms for bounding box prediction postprocessing. The image above shows the main difference: MOB (c) merges bounding boxes (a) instead of eliminating them like NMS (b). Thus, choosing MOB can produce visually more pleasing predictions. Moreover, MOB is less sensitive to the choice of condifence score threshold, making it more robust under unseen data. AIR also comes with a custom SAR-APD evaluation scheme that truthfully ranks MOB-equipped object detector performance (as standard object detection metrics, such as VOC2012 AP, do not like MOB).
+AIR implements both NMS and MOB algorithms for bounding box prediction postprocessing. The image above shows the main difference: MOB (c) merges bounding boxes (a) instead of eliminating them like NMS (b). Thus, choosing MOB can produce visually more pleasing predictions. Moreover, MOB is less sensitive to the choice of condifence score threshold, making it more robust under unseen data. AIR also comes with a custom SAR-APD evaluation scheme that truthfully ranks MOB-equipped object detector performance (as standard object detection metrics, such as VOC2012 AP, do not like MOB very much).
+
+Should you choose MOB postprocessing and SAR-APD evaluation, you should see similar evaluation results (e.g., after running `bash evaluate.sh`)
+
+<img src="keras_retinanet/images/eval.png" alt="NMS-vs-MOB"/><br>
+
+All metrics increased by over 4 percentage points from NMS & VOC2012 results with no loss of prediction visual quality, neat!
 
 ## Hardware Requirements
 - x86 or x64 processor architecture (at least for the Docker installation, and if trying to install natively on ARM64 architecture, expect a lot of compiling python packages from source)
