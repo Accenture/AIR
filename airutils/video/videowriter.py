@@ -44,7 +44,7 @@ class VideoWriter(object):
 
     def __enter__(self):
         if not self.placeholder:
-            print(f"VideoWriter: writing output {self.write_mode} to {self.filepath}")
+            print(f"VideoWriter: writing output {self.write_mode} to {self.output_path}")
             self.init()
         return self
 
@@ -53,7 +53,7 @@ class VideoWriter(object):
             self.close()
 
     def init(self):
-        os.makedirs(os.path.split(self.filepath)[0], exist_ok=True)
+        os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
         self.writer = cv2.VideoWriter(
             self.output_path, self.fourcc, int(self.fps), self.resolution)
 
@@ -62,8 +62,8 @@ class VideoWriter(object):
         if self.compress and self.write_mode == "video":
             print("Compressing video...")
             new_output_path = vid.compress_video(self.output_path, create_copy=True)
-            os.remove(self.filepath)
-            self.filepath = new_output_path
+            os.remove(self.output_path)
+            self.output_path = new_output_path
         print("Wrote output to:", self.output_path)
 
     def write(self, frame):
@@ -87,39 +87,33 @@ class AsyncVideoWriter(VideoWriter):
         self._writer = None
         self._running = False
 
-
     def __enter__(self):
         if not self.placeholder:
             super().init()
             self.start_stream()
             return self
 
-
     def __exit__(self, type, value, traceback):
         if not self.placeholder:
             self.stop_stream()
             super().close()
 
-    
     def start_stream(self):
         if self._running:
             self.stop_stream()
         with self._buffer.mutex:
             self._buffer.queue.clear()
         with self._lock:
-            print(f"AsyncWriter: writing to sink '{self.output_path}'")
             self._running = True
             self._writer = Thread(target = self._write_async)
             self._writer.daemon = False
             self._writer.start()
 
-    
     def stop_stream(self):
         with self._lock:
             self._running = False
         self._writer.join()
     
-
     def write(self, frame):
         if not self.placeholder:
             put_success = False
@@ -132,7 +126,6 @@ class AsyncVideoWriter(VideoWriter):
                     pass
                 else:
                     put_success = True
-
 
     def _write_async(self):
         while self._running:
