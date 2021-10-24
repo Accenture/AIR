@@ -45,7 +45,7 @@ data_dir = os.path.join(current_dir, "data", "videos")
 sys.path.insert(0, os.path.join(current_dir, 'airutils'))
 sys.path.insert(0, os.path.join(current_dir, 'keras-retinanet'))
 
-valid_output_types = ("video", "json", "exporter")
+valid_output_types = ("video", "json", "exporter", "images")
 
 class Params(object):
     ''' Holds people detection algorithm parameters and output options '''
@@ -87,8 +87,8 @@ def resolve_output_type(output):
         return Params.OUTPUT_TYPE
     elif output.endswith(".json"):
         return valid_output_types[1] # json
-    elif re.search(r"\.[a-zA-Z0-9]{3,4}$", output):
-        return valid_output_types[0] # video
+    elif re.search(r"\.[a-zA-Z0-9]{3,4}$", output) or os.path.isdir(output):
+        return valid_output_types[0] # video / images
     return valid_output_types[2]     # exporter object
 
 
@@ -328,6 +328,9 @@ def main(exporter=None):
         elif Params.OUTPUT_TYPE == "json":
             out_path = os.path.join(
                 dir_name, vid_file_name + ".json")
+        elif Params.OUTPUT_TYPE == "images":
+            out_path = os.path.join(
+                dir_name, vid_file_name + "_air_output")
         else:
             out_path = ""
     else:
@@ -354,6 +357,10 @@ def main(exporter=None):
     else:
         END_IDX = None
 
+    ORIG_OUTPUT_TYPE = Params.OUTPUT_TYPE
+    if Params.OUTPUT_TYPE == "images":
+        Params.OUTPUT_TYPE = "video" # there's no real difference between the two modes after this point
+
     SKIP_RATE = 1 if Params.OUTPUT_TYPE == "video" else Params.DETECT_EVERY_NTH_FRAME
 
     disable_video = Params.OUTPUT_TYPE.lower() != valid_output_types[0]
@@ -363,17 +370,20 @@ def main(exporter=None):
         detection_exporter = DetectionExporter(out_path, real_fps, in_res, Params.OUT_RESOLUTION, 
                                                Params.DETECT_EVERY_NTH_FRAME, placeholder=Params.OUTPUT_TYPE == "video")
     # 'placeholder=True' keyword argument disables writing but retains context manager for syntactical reasons
+
+    if Params.OUTPUT_TYPE == "video":
+        video_iterator = VideoIterator(Params.VIDEO_FILE)
+    else:
+        video_iterator = AsyncVideoIterator(Params.VIDEO_FILE, start_idx=Params.FRAME_OFFSET, end_idx=END_IDX, skip_rate=SKIP_RATE)
     
     with detection_exporter:
         with AsyncVideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_video) as writer:
-            # with VideoIterator(Params.VIDEO_FILE, max_slice=CHUNK_SIZE) as vi:
-            with AsyncVideoIterator(Params.VIDEO_FILE, start_idx=Params.FRAME_OFFSET, 
-                                    end_idx=END_IDX, skip_rate=SKIP_RATE) as vi:
+            with video_iterator as vi:
                 print("\n* * * * *")
                 print(f"Starting object detection from frame number {Params.FRAME_OFFSET}")
                 print(f"Using inference model '{Params.MODEL}' ({Params.BACKBONE} backbone) for detection")
                 print(f"Inference interval is {Params.DETECT_EVERY_NTH_FRAME} frames")
-                print("Output type is", Params.OUTPUT_TYPE.upper())
+                print("Output type is", ORIG_OUTPUT_TYPE.upper())
                 info_str = "all remaining frames..." if Params.PROCESS_NUM_FRAMES is None else f"{Params.PROCESS_NUM_FRAMES} frames in total..."
                 if Params.PROFILE:
                     pr.enable()
@@ -386,8 +396,6 @@ def main(exporter=None):
                 i = Params.FRAME_OFFSET   # offsetted frame index
                 detections = []           # list of tracked detections from kalman filter
 
-                # vi.seek(Params.FRAME_OFFSET)      
-                # gen = vi if Params.OUTPUT_TYPE == "video" else itertools.repeat(None)
                 if Params.OUTPUT_TYPE != "video":
                     fps_counter =  -Params.DETECT_EVERY_NTH_FRAME
 
@@ -395,12 +403,7 @@ def main(exporter=None):
                 for j, frame in enumerate(vi):
 
                     if Params.OUTPUT_TYPE != "video":
-                        i = j + Params.FRAME_OFFSET
-                        # i = Params.FRAME_OFFSET + j * Params.DETECT_EVERY_NTH_FRAME
-                        # try:
-                        #     frame = vi[i]
-                        # except IndexError:
-                        #     break
+                        i = Params.FRAME_OFFSET + j * Params.DETECT_EVERY_NTH_FRAME
                         fps_counter += Params.DETECT_EVERY_NTH_FRAME - 1
                     else:
                         i = j + Params.FRAME_OFFSET

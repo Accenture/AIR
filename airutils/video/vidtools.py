@@ -81,10 +81,10 @@ def compress_video(video_path, target_kbps=1200, res_downscale_factor=None, crea
     else:
         output_path = video_path
     if res_downscale_factor is None:
-        cmd = f"ffmpeg -i {video_path} -y -acodec copy -b:v {int(target_kbps*10e3)} {output_path}".split()
+        cmd = f"ffmpeg -threads 4 -i {video_path} -y -acodec copy -b:v -preset fast {int(target_kbps*10e3)} {output_path}".split()
     else:
         f = res_downscale_factor
-        cmd = f"ffmpeg -i {video_path} -y -vf \"scale=iw/{f}:ih/{f}\" -acodec copy -b:v {int(target_kbps*10e3)} {output_path}".split()
+        cmd = f"ffmpeg -threads 4 -i {video_path} -y -vf \"scale=iw/{f}:ih/{f}\" -acodec copy -b:v -preset fast {int(target_kbps*10e3)} {output_path}".split()
     completed = subprocess.run(cmd)
     completed.check_returncode()
     return output_path
