@@ -470,7 +470,7 @@ def main(exporter=None):
                             if det.object_id < running_id:
                                 print(f"[Frame {i}] Tracking: '{det.object_class} {det.object_id}' ({100.*det.confidence:.1f} % confidence){', passed tracker validation!' if det.is_valid else ''}")
 
-                    elif Params.OUTPUT_TYPE == "video":
+                    elif Params.OUTPUT_TYPE in {"video", "images"}:
                         if Params.USE_TRACKING:
                             interp_detections = kt.interpolate_detections(
                                 detections, (i % Params.DETECT_EVERY_NTH_FRAME) / Params.DETECT_EVERY_NTH_FRAME)
@@ -481,7 +481,9 @@ def main(exporter=None):
                                 frame, old_labels, old_bboxes, old_scores)
                             detection_disp_counter += 1
 
-                    writer.write(frame)
+                    if Params.OUTPUT_TYPE == "video" or valid_detections:
+                        writer.write(frame)
+                        
                     fps_counter += 1
                     if fps_counter >= 100:
                         processing_fps = fps_counter / (time.time() - fps_timer)
