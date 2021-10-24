@@ -80,7 +80,7 @@ class AsyncVideoIterator(VideoIterator):
         with self._lock:
             print(f"AsyncVideoIterator: Consuming video source '{self.src}'")
             self._running = True
-            self._producer = Thread(target = self.produce)
+            self._producer = Thread(target = self._produce)
             self._producer.daemon = False
             self._producer.start()
 
@@ -91,7 +91,7 @@ class AsyncVideoIterator(VideoIterator):
         self._producer.join()
 
 
-    def produce(self):
+    def _produce(self):
         for i in range(self.start_idx, self.end_idx, self.skip_rate):
             with self._lock:
                 frame = super().__getitem__(i)
@@ -157,5 +157,3 @@ if __name__ == "__main__":
             time.sleep(0.5)
             print(avi[0])
             
-
-    

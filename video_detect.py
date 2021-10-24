@@ -217,7 +217,7 @@ from keras_retinanet.keras_retinanet.utils import optimize_tf_parallel_processin
 from dataset.detection_exporter import DetectionExporter
 from video.video_iterator import VideoIterator
 from video.async_video_iterator import AsyncVideoIterator
-from video.videowriter import VideoWriter
+from video.videowriter import VideoWriter, AsyncVideoWriter
 from kalman_tracker import KalmanConfig
 import video.vidtools as vid
 import kalman_tracker as kt
@@ -365,7 +365,7 @@ def main(exporter=None):
     # 'placeholder=True' keyword argument disables writing but retains context manager for syntactical reasons
     
     with detection_exporter:
-        with VideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_video) as writer:
+        with AsyncVideoWriter(out_path, Params.OUT_RESOLUTION, fps=fps, codec="mp4v", compress=Params.COMPRESS_VIDEO, placeholder=disable_video) as writer:
             # with VideoIterator(Params.VIDEO_FILE, max_slice=CHUNK_SIZE) as vi:
             with AsyncVideoIterator(Params.VIDEO_FILE, start_idx=Params.FRAME_OFFSET, 
                                     end_idx=END_IDX, skip_rate=SKIP_RATE) as vi:
