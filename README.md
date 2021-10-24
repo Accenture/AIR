@@ -86,20 +86,25 @@ If using native installation:
 
 ## Quick demos
 
-Once everything is setup (installation and asset downloads), you might wanna try out these couple simple demos to get the hang of the AIR detector.
+Once everything is setup (installation and asset downloads), you might wanna try out these couple simple demos to get the hang of using the AIR detector.
 
 ### Running inference on HERIDAL test image folder
 - In the project root, run the command: `bash infer.sh`
-- Check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-inference` for the output images
+- Check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-inference/` folder for the output images
 
 ### Evaluating AIR performance on HERIDAL test set (can be slow on CPU)
 - In the project root, run the command: `bash evaluate.sh`
-- Check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-sar-apd-eval` for the output images
+- Check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-sar-apd-eval/` folder for the output images
 
-### SAR-APD video detection
+### SAR-APD video detection with image output
 - In the project root, run the command: `/bin/bash convert-model.sh`
-- Then start the inferencing by running: `/usr/bin/python3 video_detect.py -c mob_cpu_tracking`
-- Check `data/videos/Ylojarvi-gridiajo-two-guys-moving_air_output_compressed.mov` for the output video
+- Then start the inferencing by running: `/usr/bin/python3 video_detect.py -c mob_cpu_images`
+- Check `data/videos/Ylojarvi-gridiajo-two-guys-moving_air_output/` folder for the output images
+
+### SAR-APD video detection with video output
+- In the project root, run the command: `/bin/bash convert-model.sh`
+- Then start the inferencing by running: `/usr/bin/python3 video_detect.py -c mob_gpu_tracking`
+- Check `data/videos/Ylojarvi-gridiajo-two-guys-moving_air_output_compressed.mov` output video
 
 ## Wandb support
 - Experiment tracking software by [Weight & Biases](https://wandb.ai/home)
@@ -139,6 +144,7 @@ Once everything is setup (installation and asset downloads), you might wanna try
 - If you edit any of the bash scripts in the root folder (e.g., `evaluate.sh`), make sure there are no whitespace after linebreaks '`\`', bash can be picky about these things... Also avoid commenting out any command line parameters in those scripts, just delete the whole line outright
 - The actual python scripts corresponding to the bash scripts are in `keras_retinanet/keras_retinanet/bin` folder and they can be called directly (or you can try the installed console scripts (e.g., `air-evaluate`) if you ran `pip install .`) with approproate parameters (examples can be found in those bash scripts)
 - Using command line parameters `-h` or `--help` usually *helps* (pun intended)
+- If you find a bug or have a complicated question, open a new issue here
 
 ## Acknowledgements
 - Kudos to [Aalto Science-IT project](https://scicomp.aalto.fi/) for providing the compute hardware for training and testing the AIR detector
