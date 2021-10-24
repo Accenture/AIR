@@ -395,7 +395,8 @@ def main(exporter=None):
                 for j, frame in enumerate(vi):
 
                     if Params.OUTPUT_TYPE != "video":
-                        i = Params.FRAME_OFFSET + j * Params.DETECT_EVERY_NTH_FRAME
+                        i = j + Params.FRAME_OFFSET
+                        # i = Params.FRAME_OFFSET + j * Params.DETECT_EVERY_NTH_FRAME
                         # try:
                         #     frame = vi[i]
                         # except IndexError:

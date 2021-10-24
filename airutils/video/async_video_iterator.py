@@ -81,7 +81,7 @@ class AsyncVideoIterator(VideoIterator):
             print(f"AsyncVideoIterator: Consuming video source '{self.src}'")
             self._running = True
             self._producer = Thread(target = self.produce)
-            self._producer.daemon = True
+            self._producer.daemon = False
             self._producer.start()
 
     
@@ -119,12 +119,11 @@ class AsyncVideoIterator(VideoIterator):
 
 
     def __next__(self):
-        # if self._running:
         timeout = self.timeout if self.timeout is not None else float("inf")
         timeout_timer = time.perf_counter()
         get_success = False
         while not get_success:
-            if not self._running:
+            if not self._running and self._buffer.empty():
                 raise StopIteration
             if time.perf_counter() - timeout_timer > timeout:
                 print("AsyncVideoIterator: iteration timed out!")
@@ -133,17 +132,9 @@ class AsyncVideoIterator(VideoIterator):
                 frame = self._buffer.get_nowait()
                 return frame
             except Empty:
-                # print("AsyncVideoIterator: Video buffer is empty!")
-                # raise StopIteration
                 pass
             else:
                 get_success = True
-            # try:
-            #     frame = self._buffer.get(timeout = self.timeout)
-            #     return frame
-            
-        # else:
-        #     raise StopIteration
 
             
     def __getitem__(self, idx):
