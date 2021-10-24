@@ -377,7 +377,7 @@ def main(exporter=None):
         Params.OUT_RESOLUTION = in_res
     if detection_exporter is None:
         detection_exporter = DetectionExporter(out_path, real_fps, in_res, Params.OUT_RESOLUTION, 
-                                               Params.DETECT_EVERY_NTH_FRAME, placeholder=Params.OUTPUT_TYPE == "video")
+                                               Params.DETECT_EVERY_NTH_FRAME, placeholder=Params.OUTPUT_TYPE in {"video", "images"})
     # 'placeholder=True' keyword argument disables writing but retains context manager for syntactical reasons
 
     if Params.OUTPUT_TYPE == "video":

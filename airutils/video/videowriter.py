@@ -73,7 +73,7 @@ class VideoWriter(object):
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 self.writer.write(cv2.resize(frame, self.resolution, interpolation=cv2.INTER_CUBIC))
             else:
-                cv2.imwrite(os.path.join(save_path, f'frame-{self.frames_written + 1}.png'), save_image)
+                cv2.imwrite(os.path.join(self.output_path, f'frame-{self.frames_written + 1}.png'), frame)
             self.frames_written += 1
 
 
