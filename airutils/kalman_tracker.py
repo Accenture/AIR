@@ -217,7 +217,7 @@ def visualize_detections(background_image, detections, valid_color="red", uncert
             cv2.putText(bg_img, title, text_pos, font,
                         fontsize, (255,)*3, line_width, cv2.LINE_8)
             cv2.rectangle(bg_img, (x, y), (x + w, y + h), color, line_width)
-            if detection.is_valid:
+            if detection.speed is not None:
                 start = tuple(int(x) for x in detection.position)
                 end = tuple(int(x) for x in detection.position + detection.speed)
                 cv2.arrowedLine(bg_img, start, end, color, line_width, tipLength = 0.25)
