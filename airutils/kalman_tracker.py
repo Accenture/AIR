@@ -220,7 +220,7 @@ def visualize_detections(background_image, detections, valid_color="red", uncert
             if detection.is_valid:
                 start = tuple(int(x) for x in detection.position)
                 end = tuple(int(x) for x in detection.position + detection.speed)
-                cv2.arrowedLine(bg_img, start, end, color, line_width)
+                cv2.arrowedLine(bg_img, start, end, color, line_width, tipLength = 0.25)
     
     return bg_img
 
