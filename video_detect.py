@@ -477,7 +477,8 @@ def main(exporter=None):
                             detection_disp_counter += 1
 
                     if Params.OUTPUT_TYPE == "video" or valid_detections:
-                        writer.write(frame)
+                        secs = int(round((i+1)/(fps+1e-6)))
+                        writer.write(frame, title=f"frame_{i}_at_{secs}s")
 
                     fps_counter += 1
                     if fps_counter >= 100:

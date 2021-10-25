@@ -54,26 +54,34 @@ class VideoWriter(object):
 
     def init(self):
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
-        self.writer = cv2.VideoWriter(
-            self.output_path, self.fourcc, int(self.fps), self.resolution)
+        if self.write_mode == "video":
+            self.writer = cv2.VideoWriter(
+                self.output_path, self.fourcc, int(self.fps), self.resolution)
 
     def close(self):
-        self.writer.release()
-        if self.compress and self.write_mode == "video":
-            print("Compressing video...")
-            new_output_path = vid.compress_video(self.output_path, create_copy=True)
-            os.remove(self.output_path)
-            self.output_path = new_output_path
+        if self.write_mode == "video":
+            self.writer.release()
+            if self.compress:
+                if shutil.which("ffmpeg"):
+                    print("Compressing video...")
+                    new_output_path = vid.compress_video(self.output_path, create_copy=True)
+                    os.remove(self.output_path)
+                    self.output_path = new_output_path
+                else:
+                    print("WARNING: FFmpeg executable not found, skipping compression...")
         print("Wrote output to:", self.output_path)
 
-    def write(self, frame):
+    def write(self, frame, title=None):
         if not self.placeholder:
             if self.write_mode == "video":
                 if self.bgr_to_rgb:
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 self.writer.write(cv2.resize(frame, self.resolution, interpolation=cv2.INTER_CUBIC))
             else:
-                cv2.imwrite(os.path.join(self.output_path, f'frame-{self.frames_written + 1}.png'), frame)
+                if title is None:
+                    cv2.imwrite(os.path.join(self.output_path, f'frame_{self.frames_written + 1}.png'), frame)
+                else:
+                    cv2.imwrite(os.path.join(self.output_path, f'{title}.png'), frame)
             self.frames_written += 1
 
 
@@ -115,14 +123,14 @@ class AsyncVideoWriter(VideoWriter):
             self._running = False
         self._writer.join()
     
-    def write(self, frame):
+    def write(self, frame, title=None):
         if not self.placeholder:
             put_success = False
             while not put_success:
                 if not self._running:
                     return
                 try:
-                    self._buffer.put_nowait(frame)
+                    self._buffer.put_nowait((frame, title))
                 except Full:
                     pass
                 else:
@@ -135,8 +143,8 @@ class AsyncVideoWriter(VideoWriter):
                 if not self._running and self._buffer.empty():
                     return
                 try:
-                    frame = self._buffer.get_nowait()
-                    super().write(frame)
+                    frame, title = self._buffer.get_nowait()
+                    super().write(frame, title)
                 except Empty:
                     pass
                 else:
