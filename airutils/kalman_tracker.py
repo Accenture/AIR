@@ -214,11 +214,13 @@ def visualize_detections(background_image, detections, valid_color="red", uncert
     for detection, bbox_info in zip(detections, bbox_infos):
         if (uncertain_color is None and detection.is_valid) or uncertain_color is not None:
             x, y, w, h, color, title, title_w, title_h, baseline, text_pos = bbox_info
-            cv2.rectangle(title_boxes, (text_pos[0] - baseline, text_pos[1] - title_h - baseline),
-                        (text_pos[0] + title_w, text_pos[1] + title_h - y_offset), (0, 0, 0), -1)
             cv2.putText(bg_img, title, text_pos, font,
                         fontsize, (255,)*3, line_width, cv2.LINE_8)
             cv2.rectangle(bg_img, (x, y), (x + w, y + h), color, line_width)
+            if detection.is_valid:
+                start = tuple(int(x) for x in detection.position)
+                end = tuple(int(x) for x in detection.position + detection.speed)
+                cv2.arrowedLine(bg_img, start, end, color, line_width)
     
     return bg_img
 
