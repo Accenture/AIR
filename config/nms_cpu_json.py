@@ -13,6 +13,7 @@ MODEL = "dauntless-sweep-2_resnet152_pascal-nms-inference.h5"
 BACKBONE = "resnet152"
 DETECT_EVERY_NTH_FRAME = 60
 USE_TRACKING = False
+PLOT_OBJECT_SPEED = False
 SHOW_DETECTION_N_FRAMES = 30
 USE_GPU = False
 PROFILE = False

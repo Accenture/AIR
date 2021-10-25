@@ -70,6 +70,7 @@ class Params(object):
     DETECT_EVERY_NTH_FRAME = 60
     MAX_DETECTIONS_PER_FRAME = 20
     USE_TRACKING = True
+    PLOT_OBJECT_SPEED = False
     SHOW_DETECTION_N_FRAMES = 20
     USE_GPU = False
     PROFILE = False
@@ -133,6 +134,8 @@ def parse_args(parser=None):
                              "box tracking looks smooth, has no effect if -d flag is set to 1. If interpolation is not "
                              "enabled bounding boxes flash on top of video at (maximum) frequency specified by -d flag, "
                              "useful to disable when testing retinanet detection performance")
+    parser.add_argument('-ps', '--plot-object-speed', action="store_true", default=Params.PLOT_OBJECT_SPEED,
+                        help="ADVANCED: Plot object speed vector if successfully tracked (can be misleading due to platform motion)")
     parser.add_argument('-bb', '--backbone', default=Params.BACKBONE,
                         help="ADVANCED: Select backbone network for the inference model, "
                              "check the available options here: https://github.com/fizyr/keras-retinanet/tree/master/keras_retinanet/models")
@@ -179,6 +182,7 @@ def parse_args(parser=None):
         Params.CONFIDENCE_THRES = args.confidence_thres 
         Params.DETECT_EVERY_NTH_FRAME = args.detect_every_nth_frame
         Params.USE_TRACKING = args.no_interpolation
+        Params.PLOT_OBJECT_SPEED = args.plot_object_speed
         Params.PROCESS_NUM_FRAMES = args.num_frames
         Params.FRAME_OFFSET = args.frame_offset
         Params.USE_GPU = args.gpu
@@ -278,6 +282,7 @@ def main(exporter=None):
     KalmanConfig.INITIAL_COVARIANCE = 500
     KalmanConfig.INITIAL_MEASUREMENT_NOISE = 50
     KalmanConfig.TIMESTEP = 1
+    KalmanConfig.PLOT_OBJECT_SPEED = Params.PLOT_OBJECT_SPEED # this can be misleading due to platform movement
 
     # make sure we use absolute path
     if not os.path.isabs(Params.VIDEO_FILE):

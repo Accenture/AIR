@@ -2,7 +2,7 @@
 
 # AIR: Aerial Inspection RetinaNet for supporting Land Search and Rescue Missions
 
- AIR is a deep learning based object detection solution to automate the aerial drone footage inspection task carried out during SAR operations with drone units. It provides a fast, convenient and reliable way to augment aerial, high-resolution image inspection for clues about human presence by highlighting relevant image regions with bounding boxes, as done in the image below. With the assistance of AIR, search and rescue missions with drone units can likely be carried out much faster before, and with considerably higher success rate.
+ AIR is a deep learning based object detection solution to automate the aerial drone footage inspection task frequently carried out during SAR operations with drone units. It provides a fast, convenient and reliable way to augment aerial, high-resolution image inspection for clues about human presence by highlighting relevant image regions with bounding boxes, as done in the image below. With the assistance of AIR, search and rescue missions with drone units can likely be carried out much faster before, and with considerably higher success rate.
 
 <img src="keras_retinanet/images/air-example.png" alt="AIR-example"/><br><br>
 

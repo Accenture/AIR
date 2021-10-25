@@ -30,6 +30,7 @@ class KalmanConfig(object):
     INITIAL_COVARIANCE = 100
     INITIAL_MEASUREMENT_NOISE = 100
     INITIAL_PROCESS_NOISE = 400
+    PLOT_OBJECT_SPEED = False
     # DEFAULT_HIT_THRES = 2
 
 
@@ -217,10 +218,10 @@ def visualize_detections(background_image, detections, valid_color="red", uncert
             cv2.putText(bg_img, title, text_pos, font,
                         fontsize, (255,)*3, line_width, cv2.LINE_8)
             cv2.rectangle(bg_img, (x, y), (x + w, y + h), color, line_width)
-            if detection.speed is not None:
+            if detection.is_valid and KalmanConfig.PLOT_OBJECT_SPEED:
                 start = tuple(int(x) for x in detection.position)
                 end = tuple(int(x) for x in detection.position + detection.speed)
-                cv2.arrowedLine(bg_img, start, end, color, line_width, tipLength = 0.25)
+                cv2.arrowedLine(bg_img, start, end, color, line_width - 2, tipLength = 0.25)
     
     return bg_img
 
