@@ -2,7 +2,9 @@
 
 # AIR: Aerial Inspection RetinaNet for supporting Land Search and Rescue Missions
 
- AIR is a deep learning based object detection solution to automate the aerial drone footage inspection task frequently carried out during SAR operations with drone units. It provides a fast, convenient and reliable way to augment aerial, high-resolution image inspection for clues about human presence by highlighting relevant image regions with bounding boxes, as done in the image below. With the assistance of AIR, search and rescue missions with drone units can likely be carried out much faster before, and with considerably higher success rate.
+ AIR is a deep learning based object detection solution to automate the aerial drone footage inspection task frequently carried out during search and rescue (SAR) operations with drone units. It provides a fast, convenient and reliable way to augment aerial, high-resolution image inspection for clues about human presence by highlighting relevant image regions with bounding boxes, as done in the image below. With the assistance of AIR, SAR missions with aerial drone searches can likely be carried out much faster before, and with considerably higher success rate.
+
+ This code repository is based on the master's thesis work of **Pasi Pyrrö** <span itemscope itemtype="https://schema.org/Person"><a itemprop="sameAs" content="https://orcid.org/0000-0002-0277-4996" href="https://orcid.org/0000-0002-0277-4996" target="orcid.widget" rel="me noopener noreferrer" style="vertical-align:top;"><img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width:1em;margin-right:.5em;" alt="ORCID iD icon"></a></span>from [Aalto University School of Science](https://www.aalto.fi/en/school-of-science) with the title "AIR: Aerial Inspection RetinaNet for Land Search and Rescue Missions". This thesis work was funded by Accenture.
 
 <img src="keras_retinanet/images/air-example.png" alt="AIR-example"/><br><br>
 
@@ -89,11 +91,11 @@ If using native installation:
 Once everything is setup (installation and asset downloads), you might wanna try out these couple simple demos to get the hang of using the AIR detector.
 
 ### Running inference on HERIDAL test image folder
-- In the project root, run the command: `bash infer.sh`
+- In the project root, run the command: `/bin/bash infer.sh`
 - Check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-inference/` folder for the output images
 
 ### Evaluating AIR performance on HERIDAL test set (can be slow on CPU)
-- In the project root, run the command: `bash evaluate.sh`
+- In the project root, run the command: `/bin/bash evaluate.sh`
 - Check `data/predictions/dauntless-sweep-2_resnet152_pascal-enclose-sar-apd-eval/` folder for the output images
 
 ### SAR-APD video detection with image output
@@ -143,7 +145,7 @@ Once everything is setup (installation and asset downloads), you might wanna try
 - Tracker options in `video_detect.py` might need to be recalibrated for each use case for best performance
 - If you edit any of the bash scripts in the root folder (e.g., `evaluate.sh`), make sure there are no whitespace after linebreaks '`\`', bash can be picky about these things... Also avoid commenting out any command line parameters in those scripts, just delete the whole line outright
 - The actual python scripts corresponding to the bash scripts are in `keras_retinanet/keras_retinanet/bin` folder and they can be called directly (or you can try the installed console scripts (e.g., `air-evaluate`) if you ran `pip install .`) with approproate parameters (examples can be found in those bash scripts)
-- Using command line parameters `-h` or `--help` usually *helps* (pun intended)
+- Using the command line parameter `-h` or `--help` usually *helps* (pun intended)
 - If you find a bug or have a complicated question, open a new issue here
 
 ## Acknowledgements
