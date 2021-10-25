@@ -18,6 +18,7 @@ import os, sys
 current_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.join(current_dir))
 import cv2
+import shutil
 from threading import Thread, RLock
 from queue import Queue, Full, Empty
 
