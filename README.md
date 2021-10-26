@@ -162,10 +162,10 @@ Once everything is setup (installation and asset downloads), you might wanna try
 ## How to cite
 
 ```bibtex
-@MastersThesis{pasi-thesis, 
+@MastersThesis{pyrro2021air, 
 	title={{AIR:} {Aerial} Inspection RetinaNet for Land Search and Rescue Missions}, 
 	author={Pyrr{\"o}, Pasi and Naseri, Hassan and Jung, Alex},
-	school = {Aalto University, School of Science},
+	school={Aalto University, School of Science},
 	year={2021}
 }
 ```
