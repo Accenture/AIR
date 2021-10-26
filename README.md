@@ -4,7 +4,7 @@
 
  AIR is a deep learning based object detection solution to automate the aerial drone footage inspection task frequently carried out during search and rescue (SAR) operations with drone units. It provides a fast, convenient and reliable way to augment aerial, high-resolution image inspection for clues about human presence by highlighting relevant image regions with bounding boxes, as done in the image below. With the assistance of AIR, SAR missions with aerial drone searches can likely be carried out much faster before, and with considerably higher success rate.
 
- This code repository is based on the master's thesis work of **Pasi Pyrrö** <span itemscope itemtype="https://schema.org/Person"><a itemprop="sameAs" content="https://orcid.org/0000-0002-0277-4996" href="https://orcid.org/0000-0002-0277-4996" target="orcid.widget" rel="me noopener noreferrer" style="vertical-align:top;"><img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width:1em;margin-right:.5em;" alt="ORCID iD icon"></a></span>from [Aalto University School of Science](https://www.aalto.fi/en/school-of-science) with the title "AIR: Aerial Inspection RetinaNet for Land Search and Rescue Missions". This thesis work was funded by Accenture.
+ This code repository is based on the master's thesis work of **Pasi Pyrrö** <span itemscope itemtype="https://schema.org/Person"><a itemprop="sameAs" content="https://orcid.org/0000-0002-0277-4996" href="https://orcid.org/0000-0002-0277-4996" target="orcid.widget" rel="me noopener noreferrer" style="vertical-align:top;"><img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width:1em;margin-right:.5em;" alt="ORCID iD icon"></a></span>from [Aalto University, School of Science](https://www.aalto.fi/en/school-of-science) with the title "AIR: Aerial Inspection RetinaNet for Land Search and Rescue Missions". This thesis work was funded by Accenture.
 
 <img src="keras_retinanet/images/air-example.png" alt="AIR-example"/><br><br>
 
@@ -133,10 +133,14 @@ Once everything is setup (installation and asset downloads), you might wanna try
 ## Project folder structure
 
 - **airutils:** air utility functions that augment the standard `keras-retinanet` framework to incorporate *aerial person detection* (APD) support to it.
-- **config:**  files for detection scripts
-- **data:** input and output data for computer vision algorithms
+- **config:**  configuration files for `video_detect.py` script (easier to use than the CLI in most cases)
+- **data:** input and output data for the AIR detector, divided into subfolders:
+    - `/datasets` (input for training and evaluation) 
+    - `/images` (input for general inference)
+    - `/predictions` (output of the AIR detector)
+    - `/videos` (input for `video_detect.py`)
 - **keras-retinanet:** a fork of the [keras-retinanet](https://github.com/fizyr/keras-retinanet) repository with some AIR modifications
-- **models:** contains trained computer vision models
+- **models:** contains trained object detection models (both trainable and inference models)
 
 ## General toubleshooting
 - Try setting the `AIR_VERBOSE=1` enviroment variable to see full TF logs
@@ -153,6 +157,21 @@ Once everything is setup (installation and asset downloads), you might wanna try
 - Big thanks to contributors of [keras-retinanet](https://github.com/fizyr/keras-retinanet), and their marvellous programming efforts that have allowed AIR to exists in the first place!
 - Huge credit to the authors of the [HERIDAL](http://ipsar.fesb.unist.hr/HERIDAL%20database.html) dataset [[2](#references)], for which AIR equally well owes its very existence 
 - Also thanks to Ari Nissinen from Finnish Voluntary Rescue Service ([VAPEPA](https://vapepa.fi/en/)) for providing video material used in development and testing of the AIR detector
+- Lastly, thanks to Hassan Naseri from Accenture for instructing with the thesis work and providing valuable insights throughout the whole AIR project
+
+## How to cite
+
+```bibtex
+@MastersThesis{pasi-thesis, 
+	title={{AIR:} {Aerial} Inspection RetinaNet for Land Search and Rescue Missions}, 
+	author={Pyrr{\"o}, Pasi and Naseri, Hassan and Jung, Alex},
+	school = {Aalto University, School of Science},
+	year={2021}
+}
+```
+
+## License
+AIR is licensed under the [Apache 2.0 License](./LICENSE).
 
 
 ## References
