@@ -118,7 +118,7 @@ Once everything is setup (installation and asset downloads), you might wanna try
     - `WANDB_API_KEY=<your_api_key>`
         - needed to interact with wandb web UI, you might want to put this in your ``~/.bashrc`` or ``~/.zshrc`` so that it's automatically included into the Docker envs. On most linux based systems, you can achieve this by running this shell command with your Wandb API key:
             ```bash
-            echo "export WANDB_API_KEY=<your_api_key>" >> ".${SHELL/\/bin\//}rc"; exec $SHELL
+            echo "export WANDB_API_KEY=<your_api_key>" >> "~/.${SHELL/\/bin\//}rc"; exec $SHELL
             ```
     - `WANDB_DIR=~/wandb`
         - select where local log files are stored
