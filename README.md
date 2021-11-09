@@ -8,7 +8,7 @@
 
  AIR is a deep learning based object detection solution to automate the aerial drone footage inspection task frequently carried out during search and rescue (SAR) operations with drone units. It provides a fast, convenient and reliable way to augment aerial, high-resolution image inspection for clues about human presence by highlighting relevant image regions with bounding boxes, as done in the image below. With the assistance of AIR, SAR missions with aerial drone searches can likely be carried out much faster before, and with considerably higher success rate.
 
- This code repository is based on the master's thesis work of **Pasi Pyrrö** <span itemscope itemtype="https://schema.org/Person"><a itemprop="sameAs" content="https://orcid.org/0000-0002-0277-4996" href="https://orcid.org/0000-0002-0277-4996" target="orcid.widget" rel="me noopener noreferrer" style="vertical-align:top;"><img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width:1em;margin-right:.5em;" alt="ORCID iD icon"></a></span> from [Aalto University, School of Science](https://www.aalto.fi/en/school-of-science) with the title "AIR: Aerial Inspection RetinaNet for Land Search and Rescue Missions". This thesis work was funded by Accenture.
+ This code repository is based on the master's thesis work by **Pasi Pyrrö** <span itemscope itemtype="https://schema.org/Person"><a itemprop="sameAs" content="https://orcid.org/0000-0002-0277-4996" href="https://orcid.org/0000-0002-0277-4996" target="orcid.widget" rel="me noopener noreferrer" style="vertical-align:top;"><img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width:1em;margin-right:.5em;" alt="ORCID iD icon"></a></span> from [Aalto University, School of Science](https://www.aalto.fi/en/school-of-science) with the title "AIR: Aerial Inspection RetinaNet for Land Search and Rescue Missions". This thesis work was funded by Accenture.
 
 <img src="keras_retinanet/images/air-example.png" alt="AIR-example"/><br><br>
 
@@ -35,6 +35,8 @@ In the table below are listed the results of the AIR detector and other notable 
 |  AIR with NMS (ours) | **90.1** | 86.1 | 84.6 | **1**
 
 It turns out AIR achieves state-of-the-art results in precison and inference speed while having comparable recall to the strongest competitors!
+
+You can check out the full details of AIR evaluation in this [Wandb report](https://wandb.ai/hypersphere/masters-thesis/reports/Best-Model-Evaluation-Study--Vmlldzo1MDgxODE).
 
 ## Bounding Box Aggregation options
 
@@ -83,16 +85,16 @@ If using native installation:
 - To build the AIR project for CPU, run the command: `/usr/bin/python3 -m pip install air-detector[cpu]`
 - To build the AIR project for GPU, run the command: `/usr/bin/python3 -m pip install air-detector[gpu]`
 
-## Download example data and the trained model
-- Download links coming soon
-- Save the demo image folder under `data/images`
-- Save the demo videos under `data/videos`
-- Save the trained model in `models/` folder
-- In the project root, convert the training model to inference model by running: `/bin/bash convert-model.sh`
+## Download data and the trained model
+- Save the [demo image folder](https://zenodo.org/record/5662638) under `data/images`
+- Save the [demo videos](https://zenodo.org/record/5662512) under `data/videos`
+- Save the [trained model](https://zenodo.org/record/5662168) in `models/` folder
+    - In the project root, convert the training model to inference model by running: `/bin/bash convert-model.sh`
+- Optionally, you can download and extract [the whole HERIDAL dataset in keras-retinanet format](https://zenodo.org/record/5662351) to `data/datasets`
 
 ## Quick demos
 
-Once everything is setup (installation and asset downloads), you might wanna try out these couple simple demos to get the hang of using the AIR detector.
+Once everything is set up (installation and asset downloads), you might wanna try out these cool and simple demos to get the hang of using the AIR detector.
 
 ### Running inference on HERIDAL test image folder
 - In the project root, run the command: `/bin/bash infer.sh`
@@ -113,7 +115,8 @@ Once everything is setup (installation and asset downloads), you might wanna try
 - Check `data/videos/Ylojarvi-gridiajo-two-guys-moving_air_output_compressed.mov` output video
 
 ## Wandb support
-- Experiment tracking software by [Weight & Biases](https://wandb.ai/home)
+- AIR uses experiment tracking software by [Weight & Biases](https://wandb.ai/home)
+- Wandb enables you to view [the whole public experimentation record for AIR](https://wandb.ai/hypersphere/masters-thesis/overview)
 - AIR experiments can be controlled with the following environment variables:
     - `WANDB_MODE="disabled"`
         - disables all wandb functionality, required if not logged in to wandb
@@ -174,8 +177,10 @@ Once everything is setup (installation and asset downloads), you might wanna try
 }
 ```
 
-## License
-AIR is licensed under the [Apache 2.0 License](./LICENSE).
+## Licenses
+- AIR is licensed under the [Apache 2.0 License](./LICENSE)
+- HERIDAL data is licensed under the [Creative Commons Attribution 3.0 Unported (CC BY 3.0) License](https://creativecommons.org/licenses/by/3.0/)
+- Demo videos and the trained model are licensed under the [Creative Commons Attribution 4.0 International (CC BY 4.0) License](https://creativecommons.org/licenses/by/4.0/)
 
 
 ## References
