@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Pyrrö"
+  given-names: "Pasi"
+  orcid: "https://orcid.org/0000-0002-0277-4996"
+title: "Accenture/AIR: v0.0.1-beta"
+version: 0.0.1
+doi: 10.5281/zenodo.5662005
+date-released: 2021-11-10
+url: "https://github.com/Accenture/AIR/"
+preferred-citation:
+  type: MastersThesis
+  authors:
+  - family-names: "Pyrrö"
+    given-names: "Pasi"
+    orcid: "https://orcid.org/0000-0002-0277-4996"
+  - family-names: "Naseri"
+    given-names: "Hassan"
+  - family-names: "Jung"
+    given-names: "Alexander"
+  doi: "10.5281/zenodo.5662005"
+  school: "Aalto University, School of Science"
+  title: "{AIR:} {Aerial} Inspection RetinaNet for Land Search and Rescue Missions"
+  year: 2021

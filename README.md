@@ -171,7 +171,7 @@ Once everything is set up (installation and asset downloads), you might wanna tr
 ```bibtex
 @MastersThesis{pyrro2021air, 
 	title={{AIR:} {Aerial} Inspection RetinaNet for Land Search and Rescue Missions}, 
-	author={Pyrr{\"o}, Pasi and Naseri, Hassan and Jung, Alex},
+	author={Pyrr{\"o}, Pasi and Naseri, Hassan and Jung, Alexander},
 	school={Aalto University, School of Science},
 	year={2021}
 }
