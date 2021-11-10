@@ -4,7 +4,7 @@
 
 # AIR: Aerial Inspection RetinaNet for supporting Land Search and Rescue Missions
 
-[![DOI](https://zenodo.org/badge/426364043.svg)](https://zenodo.org/badge/latestdoi/426364043) ![Docker Pulls](https://img.shields.io/docker/pulls/intrinsick/keras-retinanet-gpu?color=green)
+[![DOI](https://zenodo.org/badge/426364043.svg)](https://zenodo.org/badge/latestdoi/426364043) [![Docker Pulls](https://img.shields.io/docker/pulls/intrinsick/keras-retinanet-gpu?color=green)](https://hub.docker.com/repository/docker/intrinsick/keras-retinanet-gpu)
 
 AIR is a deep learning based object detection solution to automate the aerial drone footage inspection task frequently carried out during search and rescue (SAR) operations with drone units. It provides a fast, convenient and reliable way to augment aerial, high-resolution image inspection for clues about human presence by highlighting relevant image regions with bounding boxes, as done in the image below. With the assistance of AIR, SAR missions with aerial drone searches can likely be carried out much faster before, and with considerably higher success rate.
 
