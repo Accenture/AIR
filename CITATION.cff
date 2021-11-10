@@ -10,7 +10,9 @@ doi: 10.5281/zenodo.5662005
 date-released: 2021-11-10
 url: "https://github.com/Accenture/AIR/"
 preferred-citation:
-  type: MastersThesis
+  type: thesis
+  thesis-type: Msc
+  department: "School of Science"
   authors:
   - family-names: "Pyrrö"
     given-names: "Pasi"
@@ -19,7 +21,9 @@ preferred-citation:
     given-names: "Hassan"
   - family-names: "Jung"
     given-names: "Alexander"
-  doi: "10.5281/zenodo.5662005"
-  school: "Aalto University, School of Science"
-  title: "{AIR:} {Aerial} Inspection RetinaNet for Land Search and Rescue Missions"
+  institution:
+  - name: "Aalto University"
+    city: Espoo
+    country: FI
+  title: "AIR: Aerial Inspection RetinaNet for Land Search and Rescue Missions"
   year: 2021
