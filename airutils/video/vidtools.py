@@ -94,17 +94,16 @@ def extract_subtitles(video_path, output_path=None, verbose=True):
     ''' extracts subtitles track from a video file into srt file, 
         requires ffmpeg installed'''
     folder, video_file = os.path.split(video_path)
-    temp = os.getcwd()
     if output_path is None:
-        os.chdir(folder)
-        out_file = re.sub(r"\.[a-zA-Z0-9]{3,4}$", ".srt", video_file)
+        out_file = os.path.join(folder, re.sub(r"\.[a-zA-Z0-9]{3,4}$", ".srt", video_file))
+    else:
+        out_file = output_path
 
-    cmd = f"ffmpeg -y -i {video_file} {out_file}"
+    cmd = f"ffmpeg -y -i {video_path} {out_file}"
     if not verbose:
         with open(os.devnull, "w") as f:
             completed = subprocess.run(cmd, shell=True, stdout=f, stderr=f)
     else:
         completed = subprocess.run(cmd, shell=True)
     completed.check_returncode()
-    os.chdir(temp)
     return os.path.join(folder, out_file)

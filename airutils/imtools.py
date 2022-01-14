@@ -461,32 +461,39 @@ def get_contour_mean_speeds(contours, motion_field):
 
 def plot_detection_timeseries(detection_frequencies, filename=None, mode="lineplot", num_frames=1000, figsize=(22, 1), 
                                     smoothing=False, crop_image=True):
-
-    x = detection_frequencies[:,0]
-    y = detection_frequencies[:,1]
-    if mode == "barplot":
-        if smoothing:
-            from scipy.signal import savgol_filter
-            y = savgol_filter(y, 5, 3)
-        plt.figure(figsize=figsize)
-        plt.bar(x, y,
-                color="magenta",
-                width=0.8/num_frames,
-                edgecolor="black",
-                align="edge",
-                linewidth=1)
-    elif mode == "lineplot":
-        from scipy.interpolate import interp1d
-        fig, ax = plt.subplots(figsize=figsize)
-        # p = np.polyfit(x, y, 3)
-        # f = interp1d(x, y, kind="cubic")
-        f = interp1d(x, y, kind="quadratic")
-        x = np.linspace(x[0], x[-1], num=min(num_frames, 10000), endpoint=True)
-        y = f(x)
-        ax.fill_between(x, 0, y, facecolor='magenta')
-        plt.plot(x, y,
-                color="black",
-                linewidth=2)
+    plt.clf()
+    plt.cla()
+    if detection_frequencies is None:
+        # plot "empty" time series
+        x = np.linspace(0., 1., num=num_frames)
+        y = np.zeros((num_frames,))
+        plt.plot(x, y, color="black", linewidth=2)
+    else:
+        x = detection_frequencies[:,0]
+        y = detection_frequencies[:,1]
+        if mode == "barplot":
+            if smoothing:
+                from scipy.signal import savgol_filter
+                y = savgol_filter(y, 5, 3)
+            plt.figure(figsize=figsize)
+            plt.bar(x, y,
+                    color="magenta",
+                    width=0.8/num_frames,
+                    edgecolor="black",
+                    align="edge",
+                    linewidth=1)
+        elif mode == "lineplot":
+            from scipy.interpolate import interp1d
+            fig, ax = plt.subplots(figsize=figsize)
+            # p = np.polyfit(x, y, 3)
+            # f = interp1d(x, y, kind="cubic")
+            f = interp1d(x, y, kind="quadratic")
+            x = np.linspace(x[0], x[-1], num=min(num_frames, 10000), endpoint=True)
+            y = f(x)
+            ax.fill_between(x, 0, y, facecolor='magenta')
+            plt.plot(x, y,
+                    color="black",
+                    linewidth=2)
     if filename:
         assert filename.endswith(".png"), "Only png file format supported!"
         plt.axis("off")

@@ -27,15 +27,10 @@ Date: 7.2.2020
 
 import os
 import re
-import gc
-import cv2
 import sys
 import time
 import argparse
 import functools
-import itertools
-import numpy as np
-from collections import deque
 
 # define absolute folder locations
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -93,6 +88,15 @@ def resolve_output_type(output):
     elif os.path.isdir(output) or "." not in os.path.basename(output) or output.endswith(os.path.sep):
         return valid_output_types[3] # images
     return valid_output_types[2]     # exporter object
+    
+
+def parse_config_file(config_path):
+    import importlib
+    config = importlib.import_module("config." + config_path.replace(".py",
+                                        "").replace("config", "").replace(os.path.sep, ""))
+    for key, value in config.__dict__.items():
+        if not key.startswith("__"):
+            setattr(Params, key, value)
 
 
 def parse_args(parser=None):
@@ -157,12 +161,7 @@ def parse_args(parser=None):
     Params.CONFIG_FILE = args.config_file
 
     if Params.CONFIG_FILE:
-        import importlib
-        config = importlib.import_module("config." + Params.CONFIG_FILE.replace(".py",
-                                         "").replace("config", "").replace(os.path.sep, ""))
-        for key, value in config.__dict__.items():
-            if not key.startswith("__"):
-                setattr(Params, key, value)
+        parse_config_file(Params.CONFIG_FILE)
     else:
         if not args.input:
             parser.print_help(sys.stderr)
@@ -332,7 +331,7 @@ def main(exporter=None):
         if Params.OUTPUT_TYPE == "video":
             out_path = os.path.join(
                 dir_name, vid_file_name + "_air_output" + vid_file_ext)
-        elif Params.OUTPUT_TYPE == "json":
+        elif Params.OUTPUT_TYPE in {"json", "exporter"}:
             out_path = os.path.join(
                 dir_name, vid_file_name + ".json")
         elif Params.OUTPUT_TYPE == "images":
@@ -340,8 +339,6 @@ def main(exporter=None):
                 dir_name, vid_file_name + "_air_output")
             if not os.path.exists(out_path):
                 os.makedirs(out_path, exist_ok=True)
-        else:
-            out_path = ""
     else:
         if not os.path.exists(Params.OUTPUT_PATH):
             if Params.OUTPUT_TYPE == "images":
@@ -360,7 +357,6 @@ def main(exporter=None):
         print("\n".join([f"{k}: {v}" for k, v in vars(KalmanConfig).items() if not k.startswith("__")]))
         print("")
     
-    CHUNK_SIZE = Params.DETECT_EVERY_NTH_FRAME
     if Params.PROCESS_NUM_FRAMES is not None:
         if Params.FRAME_OFFSET is not None:
             END_IDX = Params.PROCESS_NUM_FRAMES + Params.FRAME_OFFSET

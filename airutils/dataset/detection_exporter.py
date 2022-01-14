@@ -52,13 +52,16 @@ class DetectionExporter(object):
         self.inverse_sampling_rate = inverse_sampling_rate
         self._detection_timeseries = [[[0,0]]]
         self._video_idx = 0
-        self._num_detections = 0
+        self._num_detections = [0]
 
 
     @property
     def detection_timeseries(self):
         # TODO: don't scale x-axis (irrelevant in ViDAR plots)
-        return np.array(self._detection_timeseries[self._video_idx]) / self._num_detections
+        if self._num_detections[self._video_idx] > 0:
+            return np.array(self._detection_timeseries[self._video_idx]) / self._num_detections[self._video_idx]
+        else:
+            return None
 
 
     def __enter__(self):
@@ -74,8 +77,8 @@ class DetectionExporter(object):
         sum_confidence = np.sum([d.confidence if not math.isnan(d.confidence)
                                 else d.detection_history[-1] 
                                 for d in detections])
-        self._num_detections += len(detections)
-        current_timestamp = (frame_no + frame_offset) / self.fps 
+        self._num_detections[self._video_idx] += len(detections)
+        current_timestamp = (frame_no + frame_offset) / self.fps
         last_time_point = self._detection_timeseries[self._video_idx][-1][0] \
             if self._detection_timeseries[self._video_idx] else 0
         if math.isclose(last_time_point, current_timestamp):
@@ -107,7 +110,7 @@ class DetectionExporter(object):
                 },
                 "label": self.map_labels.get(d.object_class, d.object_class),
                 "id": self.running_id,
-                "timestamp": 1000. * (self.frame_offset + frame_no) / self.fps,
+                "timestamp": 1000. * (self.frame_offset + frame_no) / self.fps + 1000.,
                 "note" : note
             })
             self.running_id += 1
@@ -116,6 +119,7 @@ class DetectionExporter(object):
     def switch_video(self):
         self._video_idx += 1
         self._detection_timeseries.append([[0,0]])
+        self._num_detections.append(0)
 
 
     def save(self, output_path=None):

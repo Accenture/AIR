@@ -101,12 +101,11 @@ class AsyncVideoWriter(VideoWriter):
         if not self.placeholder:
             super().init()
             self.init()
-            return self
+        return self
 
     def __exit__(self, type, value, traceback):
         if not self.placeholder:
             self.close()
-            super().close()
 
     def init(self):
         if self._running:
@@ -123,6 +122,7 @@ class AsyncVideoWriter(VideoWriter):
         with self._lock:
             self._running = False
         self._writer.join()
+        super().close()
     
     def write(self, frame, title=None):
         if not self.placeholder:
