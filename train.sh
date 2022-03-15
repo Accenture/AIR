@@ -19,6 +19,7 @@ BACKBONE="${3:-$BACKBONE}"
 STEPS=3
 
 python3 keras_retinanet/keras_retinanet/bin/train.py \
+    --gpu 0 \
     --random_transform=true \
     --anchor_scale=0.965 \
     --config=$PWD/keras_retinanet/config.ini \

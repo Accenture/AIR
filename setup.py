@@ -54,7 +54,7 @@ extensions = [
 
 setuptools.setup(
     name             = 'air-detector',
-    version          = '0.0.1',
+    version          = '0.0.2',
     description      = 'Keras implementation of Aerial Inspection RetinaNet object detector.',
     url              = 'https://github.com/Accenture/AIR',
     author           = 'Pasi Pyrrö',
@@ -71,8 +71,8 @@ setuptools.setup(
                         'cython', 'Pillow', 'opencv-python', 'progressbar2', 
                         'wandb==0.9.5', 'scikit-learn', 'matplotlib', 'filterpy'],
     extras_require   = {
-        "cpu":        ["tensorflow==1.15.0"],
-        "gpu":        ["tensorflow-gpu==1.15.0"],
+        "cpu":        ["tensorflow==1.15.5"],
+        "gpu":        ["tensorflow-gpu==1.15.5"],
     },
     entry_points     = {
         'console_scripts': [

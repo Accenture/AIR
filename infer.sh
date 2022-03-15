@@ -16,6 +16,7 @@ MODEL="${2:-$MODEL}"
 DATASET="${3:-$DATASET}"
 
 python3 keras_retinanet/keras_retinanet/bin/infer.py \
+    --gpu 0 \
     --backbone resnet152 \
     --image_min_side 1525 \
     --image_max_side 2025 \
